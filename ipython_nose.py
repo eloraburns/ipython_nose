@@ -7,6 +7,42 @@ from nose import core
 from nose.loader import TestLoader
 
 
+_nose_css = '''\
+<style type="text/css">
+  span.nosefailedfunc {
+    font-family: monospace;
+    font-weight: bold;
+  }
+  div.noseresults {
+    width: 100%;
+  }
+  div.nosefailbar {
+    background: red;
+    float: left;
+    padding: 1ex 0px 1ex 0px;
+  }
+  div.nosepassbar {
+    background: green;
+    float: left;
+    padding: 1ex 0px 1ex 0px;
+  }
+  div.nosefailbanner {
+    width: 75%;
+    background: red;
+    padding: 0.5ex 0em 0.5ex 1em;
+    margin-top: 1ex;
+    margin-bottom: 0px;
+  }
+  pre.nosetraceback {
+    background: pink;
+    padding-left: 1em;
+    margin-left: 0px;
+    margin-top: 0px;
+    /*display: none;*/
+  }
+</style>
+'''
+
 class MyProgram(core.TestProgram):
     # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
     # can't do it early because we don't have access to nose's config object.
@@ -22,35 +58,55 @@ class MyProgram(core.TestProgram):
 
 
 class MyResult(unittest.TestResult):
-    def make_bar(self, tests, failing):
-        return '''<div style="clear:both;">
-                <div style="color: white; background:red; width:%(failing)dpx; float:left;">FAIL</div>
-                <div style="color: white; background:green; width:%(passing)dpx; float:left;">PASS</div>
-                </div><div style="clear:both;"></div>''' % {
-                        'failing': failing * 10,
-                        'passing': (tests - failing) * 10}
-
-    def make_table_of_tests(self, tests):
-        table = '<table>'
-        for test in tests:
-            table += '<tr><td>%s</td><td><div>Show</div><pre>%s</pre></td>' % (
-                str(test[0]), cgi.escape(test[1]))
-        table += '</table>'
-        return table
 
     def _repr_html_(self):
-        if self.errors or self.failures:
-            not_successes = len(self.errors) + len(self.failures)
-            return self.make_bar(self.testsRun, not_successes) + \
-                '''
-                <h2 style="color:red">Errors</h2>%s
-                <h2 style="color:red">Failures</h2>%s''' % (
-                    self.make_table_of_tests(self.errors),
-                    self.make_table_of_tests(self.failures))
-        else:
-            return self.make_bar(self.testsRun, 0) + '<div>%d/%d&nbsp;tests&nbsp;passed</div>' % (
-                self.testsRun, self.testsRun)
+        numtests = self.testsRun
+        if numtests == 0:
+            return 'No tests found.'
 
+        # merge errors and failures: the distinction is for pedants only
+        failures = self.errors + self.failures
+        result = [_nose_css]
+        result.append(self._summary(numtests, len(failures)))
+        if failures:
+            result.extend(self._tracebacks(failures))
+        return "".join(result)
+
+    def _summary(self, numtests, numfailed):
+        if numfailed > 0:
+            text = "%d/%d tests passed; %d failed" % (
+                numtests - numfailed, numtests, numfailed)
+        else:
+            text = "%d/%d tests passed" % (numtests, numtests)
+
+        failpercent = int(float(numfailed) / numtests * 100)
+        if numfailed > 0 and failpercent < 5:
+            # ensure the red bar is visible
+            failpercent = 5
+        passpercent = 100 - failpercent
+
+        return '''
+<div class="noseresults">
+  <div class="nosefailbar" style="width: %(failpercent)d%%">&nbsp;</div>
+  <div class="nosepassbar" style="width: %(passpercent)d%%">&nbsp;</div>
+  %(text)s
+</div>
+''' % locals()
+
+    def _tracebacks(self, failures):
+        result = []
+        for (test, traceback) in failures:
+            name = cgi.escape(str(test))
+            traceback = cgi.escape(traceback)
+            result.append('''\
+<div class="nosefailbanner">
+  failed: <span class="nosefailedfunc">%(name)s</span>
+</div>
+<pre class="nosetraceback">
+%(traceback)s
+</pre>
+''' % locals())
+        return result
 
 class MyRunner(object):
     def __init__(self, config):
