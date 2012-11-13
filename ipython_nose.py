@@ -68,7 +68,6 @@ class MyRunner(object):
         return result
 
 
-@register_line_magic
 def nose(line):
     test_module = ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
@@ -78,3 +77,6 @@ def nose(line):
 
     tprog = MyProgram(argv=['dummy'], suite=tests)
     return tprog.result
+
+def load_ipython_extension(ipython):
+    register_line_magic(nose)
