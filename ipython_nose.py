@@ -2,7 +2,6 @@ from types import ModuleType
 import cgi
 import unittest
 
-from IPython.core.magic import register_line_magic
 from nose import core
 from nose.loader import TestLoader
 
@@ -155,5 +154,7 @@ def nose(line):
     tprog = MyProgram(argv=['dummy'], suite=tests)
     return tprog.result
 
+
 def load_ipython_extension(ipython):
+    from IPython.core.magic import register_line_magic
     register_line_magic(nose)
