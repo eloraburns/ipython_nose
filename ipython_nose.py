@@ -6,62 +6,7 @@ import nose.core
 import nose.loader
 
 
-_nose_css = '''\
-<style type="text/css">
-  span.nosefailedfunc {
-    font-family: monospace;
-    font-weight: bold;
-  }
-  div.noseresults {
-    width: 100%;
-  }
-  div.nosefailbar {
-    background: red;
-    float: left;
-    padding: 1ex 0px 1ex 0px;
-  }
-  div.nosepassbar {
-    background: green;
-    float: left;
-    padding: 1ex 0px 1ex 0px;
-  }
-  div.nosefailbanner {
-    width: 75%;
-    background: red;
-    padding: 0.5ex 0em 0.5ex 1em;
-    margin-top: 1ex;
-    margin-bottom: 0px;
-  }
-  pre.nosetraceback {
-    background: pink;
-    padding-left: 1em;
-    margin-left: 0px;
-    margin-top: 0px;
-    display: none;
-  }
-</style>
-'''
-
-
-_show_hide_js = '''
-<script>
-    setTimeout(function () {
-        $('.nosefailtoggle').bind(
-            'click',
-            function () {
-                $(
-                    $(this)
-                        .parent()
-                        .parent()
-                        .children()
-                        .filter('.nosetraceback')
-                ).toggle();
-            }
-        );},
-        0);
-</script>
-'''
-
+    
 
 class TestProgram(nose.core.TestProgram):
     # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
@@ -78,6 +23,62 @@ class TestProgram(nose.core.TestProgram):
 
 
 class TestResult(unittest.TestResult):
+    _nose_css = '''\
+    <style type="text/css">
+        span.nosefailedfunc {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        div.noseresults {
+            width: 100%;
+        }
+        div.nosefailbar {
+            background: red;
+            float: left;
+            padding: 1ex 0px 1ex 0px;
+        }
+        div.nosepassbar {
+            background: green;
+            float: left;
+            padding: 1ex 0px 1ex 0px;
+        }
+        div.nosefailbanner {
+            width: 75%;
+            background: red;
+            padding: 0.5ex 0em 0.5ex 1em;
+            margin-top: 1ex;
+            margin-bottom: 0px;
+        }
+        pre.nosetraceback {
+            background: pink;
+            padding-left: 1em;
+            margin-left: 0px;
+            margin-top: 0px;
+            display: none;
+        }
+    </style>
+    '''
+
+
+    _show_hide_js = '''
+    <script>
+        setTimeout(function () {
+            $('.nosefailtoggle').bind(
+                'click',
+                function () {
+                    $(
+                        $(this)
+                            .parent()
+                            .parent()
+                            .children()
+                            .filter('.nosetraceback')
+                    ).toggle();
+                }
+            );},
+            0);
+    </script>
+    '''
+
     def _repr_html_(self):
         numtests = self.testsRun
         if numtests == 0:
@@ -85,7 +86,7 @@ class TestResult(unittest.TestResult):
 
         # merge errors and failures: the distinction is for pedants only
         failures = self.errors + self.failures
-        result = [_nose_css, _show_hide_js]
+        result = [self._nose_css, self._show_hide_js]
         result.append(self._summary(numtests, len(failures)))
         if failures:
             result.extend(self._tracebacks(failures))
