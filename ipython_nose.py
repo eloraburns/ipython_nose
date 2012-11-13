@@ -38,10 +38,31 @@ _nose_css = '''\
     padding-left: 1em;
     margin-left: 0px;
     margin-top: 0px;
-    /*display: none;*/
+    display: none;
   }
 </style>
 '''
+
+
+_show_hide_js = '''
+<script>
+    setTimeout(function () {
+        $('.nosefailtoggle').bind(
+            'click',
+            function () {
+                $(
+                    $(this)
+                        .parent()
+                        .parent()
+                        .children()
+                        .filter('.nosetraceback')
+                ).toggle();
+            }
+        );},
+        0);
+</script>
+'''
+
 
 class MyProgram(core.TestProgram):
     # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
@@ -58,7 +79,6 @@ class MyProgram(core.TestProgram):
 
 
 class MyResult(unittest.TestResult):
-
     def _repr_html_(self):
         numtests = self.testsRun
         if numtests == 0:
@@ -66,7 +86,7 @@ class MyResult(unittest.TestResult):
 
         # merge errors and failures: the distinction is for pedants only
         failures = self.errors + self.failures
-        result = [_nose_css]
+        result = [_nose_css, _show_hide_js]
         result.append(self._summary(numtests, len(failures)))
         if failures:
             result.extend(self._tracebacks(failures))
@@ -98,13 +118,14 @@ class MyResult(unittest.TestResult):
         for (test, traceback) in failures:
             name = cgi.escape(str(test))
             traceback = cgi.escape(traceback)
-            result.append('''\
-<div class="nosefailbanner">
-  failed: <span class="nosefailedfunc">%(name)s</span>
+            result.append('''
+<div class="nosefailure">
+    <div class="nosefailbanner">
+      failed: <span class="nosefailedfunc">%(name)s</span>
+        [<a class="nosefailtoggle" href="#">toggle traceback</a>]
+    </div>
+    <pre class="nosetraceback">%(traceback)s</pre>
 </div>
-<pre class="nosetraceback">
-%(traceback)s
-</pre>
 ''' % locals())
         return result
 
