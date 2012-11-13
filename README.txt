@@ -4,69 +4,82 @@ ipython_nose
 This little IPython extension gives you the ability to discover and
 run tests using Nose in an IPython Notebook. To use it:
 
-  * make sure your IPython Notebook server can import ipython_nose.py
-    (e.g. copy it to a directory in your PYTHONPATH, or modify
-    PYTHONPATH before starting IPython Notebook)
+* make sure your IPython Notebook server can import ipython_nose.py
+  (e.g. copy it to a directory in your ``PYTHONPATH``, or modify
+  ``PYTHONPATH`` before starting IPython Notebook)
 
-  * add a cell containing
+* add a cell containing::
 
-      %load_ext ipython_nose
+    %load_ext ipython_nose
 
-    somewhere in your notebook
+  somewhere in your notebook
 
-  * write tests that conform to Nose conventions, e.g.
+* write tests that conform to Nose conventions, e.g.::
 
-      def test_arithmetic():
-          assert 1+1 == 2
+    def test_arithmetic():
+        assert 1+1 == 2
 
-  * add a cell consisting of
+* add a cell consisting of::
 
-      %nose
+    %nose
 
-    to your notebook and run that cell: that will discover your
-    test_* functions, run them, and report how many passed and
-    how many failed, with stack traces for each failure.
+  to your notebook and run that cell. That will discover your
+  ``test_*`` functions, run them, and report how many passed and
+  how many failed, with stack traces for each failure.
 
 
 Caveats
 -------
 
-  * There's no way to pass various Nose options, e.g. a custom
-    regex for finding test functions, or selecting tests. Fixable.
+* There's no way to pass various Nose options, e.g. a custom
+  regex for finding test functions, or selecting tests. Fixable.
 
-  * Renaming tests leaves behind the old name: you might only see N
-    test methods in your notebook, but Nose will discover and run N+1
-    tests. Not sure how to fix this one.
+* Renaming tests leaves behind the old name: you might only see N
+  test methods in your notebook, but Nose will discover and run N+1
+  tests. Not sure how to fix this one.
 
-  * There are no links between the stack traces and the code: for
-    example, a stack trace that looks like
+* There are no links between the stack traces and the code: for
+  example, a stack trace that looks like::
 
-      Traceback (most recent call last):
-        File "/usr/lib/python2.7/dist-packages/nose/case.py", line 197, in runTest
-          self.test(*self.arg)
-        File "<ipython-input-10-a3ae96abafeb>", line 2, in test_myfunc
-          assert myfunc() == 42
-      AssertionError
+    Traceback (most recent call last):
+      File "/usr/lib/python2.7/dist-packages/nose/case.py", line 197, in runTest
+        self.test(*self.arg)
+      File "<ipython-input-10-a3ae96abafeb>", line 2, in test_myfunc
+        assert myfunc() == 42
+    AssertionError
 
-    has the information you need to jump to the failing code, but does
-    nothing with it. In particular, that synthetic filename
-    (ipython-input-10-a3ae96abafeb) means that test_myfunc() is in
-    cell #10 of your notebook. Go to that cell, then line 2, and you
-    find the failing test. ipython_nose needs some UI magic to make
-    this transparent.
+  has the information you need to jump to the failing code, but does
+  nothing with it. In particular, that synthetic filename
+  (ipython-input-10-a3ae96abafeb) means that test_myfunc() is in
+  cell #10 of your notebook. Go to that cell, then line 2, and you
+  find the failing test. ipython_nose needs some UI magic to make
+  this transparent.
+
+TODO
+----
+
+* Display passing tests (like ``nose -v``).
+* Have a cell magic to only run test-like things in the current cell, e.g.::
+
+    %%nose
+    
+    def test_just_this():
+        assert True
 
 
 Authors
 -------
 
-Taavi Burns <taavi at taaviburns dot ca>
-Greg Ward <greg at gerg dot ca>
+* Taavi Burns <taavi at taaviburns dot ca>
+* Greg Ward <greg at gerg dot ca>
 
 Thanks to Fernando Perez and Greg Wilson for tips, ideas, etc.
 
 
 Get the code
 ------------
+
+::
 
   git clone https://github.com/taavi/ipython_nose.git
 
