@@ -1,9 +1,9 @@
-from types import ModuleType
+import types
 import cgi
 import unittest
 
-from nose import core
-from nose.loader import TestLoader
+import nose.core
+import nose.loader
 
 
 _nose_css = '''\
@@ -63,11 +63,11 @@ _show_hide_js = '''
 '''
 
 
-class MyProgram(core.TestProgram):
+class TestProgram(nose.core.TestProgram):
     # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
     # can't do it early because we don't have access to nose's config object.
     def runTests(self):
-        self.testRunner = MyRunner(self.config)
+        self.testRunner = TestRunner(self.config)
         # the rest is mostly duplicate code ;-(
         plug_runner = self.config.plugins.prepareTestRunner(self.testRunner)
         if plug_runner is not None:
@@ -77,7 +77,7 @@ class MyProgram(core.TestProgram):
         return self.success
 
 
-class MyResult(unittest.TestResult):
+class TestResult(unittest.TestResult):
     def _repr_html_(self):
         numtests = self.testsRun
         if numtests == 0:
@@ -128,12 +128,13 @@ class MyResult(unittest.TestResult):
 ''' % locals())
         return result
 
-class MyRunner(object):
+
+class TestRunner(object):
     def __init__(self, config):
         self.config = config
 
     def run(self, test):
-        result = MyResult()
+        result = TestResult()
         if hasattr(result, 'startTestRun'):   # python 2.7
             result.startTestRun()
         test(result)
@@ -145,13 +146,13 @@ class MyRunner(object):
 
 
 def nose(line):
-    test_module = ModuleType('test_module')
+    test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
 
-    loader = TestLoader()
+    loader = nose.loader.TestLoader()
     tests = loader.loadTestsFromModule(test_module)
 
-    tprog = MyProgram(argv=['dummy'], suite=tests)
+    tprog = TestProgram(argv=['dummy'], suite=tests)
     return tprog.result
 
 
