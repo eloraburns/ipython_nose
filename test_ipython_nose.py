@@ -49,3 +49,11 @@ class TestMyResult(object):
     def test_repr_html_works_with_no_tests(self):
         self.result.testsRun = 0
         eq_('No tests found.', self.result._repr_html_())
+
+    def test_tracebacks_escapes_test_name(self):
+        tracebacks = self.result._tracebacks([('<', '')])
+        assert_in('&lt;', tracebacks[0])
+
+    def test_tracebacks_escapes_traceback(self):
+        tracebacks = self.result._tracebacks([('', '>')])
+        assert_in('&gt;', tracebacks[0])
