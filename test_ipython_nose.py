@@ -13,9 +13,9 @@ def assert_not_in(subject, container):
         raise AssertionError("'%s' contains '%s'" % (container, subject))
 
 
-class TestMyResult(object):
+class TestTestResult(object):
     def setup(self):
-        self.result = ipython_nose.MyResult()
+        self.result = ipython_nose.TestResult()
 
     def test_summary_says_num_passed_and_total(self):
         summary = self.result._summary(numtests=5, numfailed=3)
