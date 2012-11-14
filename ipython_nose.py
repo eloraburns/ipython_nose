@@ -3,10 +3,8 @@ import cgi
 import unittest
 
 import nose.core
-import nose.loader
+from nose import loader as nose_loader
 
-
-    
 
 class TestProgram(nose.core.TestProgram):
     # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
@@ -150,11 +148,11 @@ def nose(line):
     test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
 
-    loader = nose.loader.TestLoader()
+    loader = nose_loader.TestLoader()
     tests = loader.loadTestsFromModule(test_module)
 
-    tprog = TestProgram(argv=['dummy'], suite=tests)
-    return tprog.result
+    tester = TestProgram(argv=['dummy'], suite=tests)
+    return tester.result
 
 
 def load_ipython_extension(ipython):
