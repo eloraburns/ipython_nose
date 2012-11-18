@@ -1,158 +1,102 @@
-import types
+from cStringIO import StringIO
 import cgi
+import os
+import types
 import unittest
 
-import nose.core
+from nose import core as nose_core
 from nose import loader as nose_loader
+from nose.config import Config, all_config_files
+from nose.plugins.base import Plugin
+from nose.plugins.manager import DefaultPluginManager
 
 
-class TestProgram(nose.core.TestProgram):
-    # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
-    # can't do it early because we don't have access to nose's config object.
-    def runTests(self):
-        self.testRunner = TestRunner(self.config)
-        # the rest is mostly duplicate code ;-(
-        plug_runner = self.config.plugins.prepareTestRunner(self.testRunner)
-        if plug_runner is not None:
-            self.testRunner = plug_runner
-        self.result = self.testRunner.run(self.test)
-        self.success = self.result.wasSuccessful()
-        return self.success
+class DummyUnittestStream:
+    def write(self, *arg):
+        pass
+    def writeln(self, *arg):
+        pass
+    def flush(self, *arg):
+        pass
 
 
-class TestResult(unittest.TestResult):
-    _nose_css = '''\
-    <style type="text/css">
-        span.nosefailedfunc {
-            font-family: monospace;
-            font-weight: bold;
-        }
-        div.noseresults {
-            width: 100%;
-        }
-        div.nosefailbar {
-            background: red;
-            float: left;
-            padding: 1ex 0px 1ex 0px;
-        }
-        div.nosepassbar {
-            background: green;
-            float: left;
-            padding: 1ex 0px 1ex 0px;
-        }
-        div.nosefailbanner {
-            width: 75%;
-            background: red;
-            padding: 0.5ex 0em 0.5ex 1em;
-            margin-top: 1ex;
-            margin-bottom: 0px;
-        }
-        pre.nosetraceback {
-            background: pink;
-            padding-left: 1em;
-            margin-left: 0px;
-            margin-top: 0px;
-            display: none;
-        }
-    </style>
-    '''
+class IPythonDisplay(Plugin):
+    """Do something nice in IPython."""
 
+    name = 'ipython-html'
+    enabled = True
+    score = 2
 
-    _show_hide_js = '''
-    <script>
-        setTimeout(function () {
-            $('.nosefailtoggle').bind(
-                'click',
-                function () {
-                    $(
-                        $(this)
-                            .parent()
-                            .parent()
-                            .children()
-                            .filter('.nosetraceback')
-                    ).toggle();
-                }
-            );},
-            0);
-    </script>
-    '''
+    def __init__(self):
+        super(IPythonDisplay, self).__init__()
+        self.html = []
+
+    def addSuccess(self, test):
+        self.html.append("<b style='color:green'>pass</b>")
+
+    def addError(self, test, err):
+        self.html.append("<b style='color:blue'>error</b>")
+
+    def addFailure(self, test, err):
+        self.html.append("<b style='color:red'>failure</b>")
+
+    def addSkip(self, test):
+        self.html.append("<b style='color:darkyellow'>skip</b>")
+
+    def begin(self):
+        self.html.append('<div><h1>Start plugin</h1>')
+
+    def finalize(self, result):
+        self.html.append('<!-- end plugin --></div>')
+
+    def setOutputStream(self, stream):
+        # grab for own use
+        self.stream = stream
+        return DummyUnittestStream()
+
+    def startContext(self, ctx):
+        pass
+
+    def stopContext(self, ctx):
+        pass
+
+    def startTest(self, test):
+        self.html.append('<div><h2>Starting %s</h2>' % cgi.escape(repr(test)))
+
+    def stopTest(self, test):
+        self.html.append('</div>')
 
     def _repr_html_(self):
-        numtests = self.testsRun
-        if numtests == 0:
-            return 'No tests found.'
-
-        # merge errors and failures: the distinction is for pedants only
-        failures = self.errors + self.failures
-        result = [self._nose_css, self._show_hide_js]
-        result.append(self._summary(numtests, len(failures)))
-        if failures:
-            result.extend(self._tracebacks(failures))
-        return "".join(result)
-
-    def _summary(self, numtests, numfailed):
-        if numfailed > 0:
-            text = "%d/%d tests passed; %d failed" % (
-                numtests - numfailed, numtests, numfailed)
-        else:
-            text = "%d/%d tests passed" % (numtests, numtests)
-
-        failpercent = int(float(numfailed) / numtests * 100)
-        if numfailed > 0 and failpercent < 5:
-            # ensure the red bar is visible
-            failpercent = 5
-        passpercent = 100 - failpercent
-
-        return '''
-<div class="noseresults">
-  <div class="nosefailbar" style="width: %(failpercent)d%%">&nbsp;</div>
-  <div class="nosepassbar" style="width: %(passpercent)d%%">&nbsp;</div>
-  %(text)s
-</div>
-''' % locals()
-
-    def _tracebacks(self, failures):
-        result = []
-        for (test, traceback) in failures:
-            name = cgi.escape(str(test))
-            traceback = cgi.escape(traceback)
-            result.append('''
-<div class="nosefailure">
-    <div class="nosefailbanner">
-      failed: <span class="nosefailedfunc">%(name)s</span>
-        [<a class="nosefailtoggle" href="#">toggle traceback</a>]
-    </div>
-    <pre class="nosetraceback">%(traceback)s</pre>
-</div>
-''' % locals())
-        return result
+        return '\n'.join(self.html)
 
 
-class TestRunner(object):
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, test):
-        result = TestResult()
-        if hasattr(result, 'startTestRun'):   # python 2.7
-            result.startTestRun()
-        test(result)
-        if hasattr(result, 'stopTestRun'):
-            result.stopTestRun()
-        self.config.plugins.finalize(result)
-        self.result = result
-        return result
-
-
-def nose(line):
+def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
+    return test_module
 
-    loader = nose_loader.TestLoader()
+
+def makeNoseConfig(env):
+    """Load a Config, pre-filled with user config files if any are
+    found.
+    """
+    cfg_files = all_config_files()
+    manager = DefaultPluginManager()
+    return Config(env=env, files=cfg_files, plugins=manager)
+
+
+def nose(line, test_module_getter=get_ipython_user_ns_as_a_module):
+    test_module = test_module_getter()
+    config = makeNoseConfig(os.environ)
+    loader = nose_loader.TestLoader(config=config)
     tests = loader.loadTestsFromModule(test_module)
+    plug = IPythonDisplay()
 
-    tester = TestProgram(argv=['dummy'], suite=tests)
-    return tester.result
+    tester = nose_core.TestProgram(
+        argv=['ipython-nose', '--with-ipython-html'], suite=tests,
+        addplugins=[plug], exit=False, config=config)
+
+    return plug
 
 
 def load_ipython_extension(ipython):
