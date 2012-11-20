@@ -5,10 +5,10 @@ import unittest
 import nose.core
 from nose import loader as nose_loader
 
-
 class TestProgram(nose.core.TestProgram):
-    # XXX yuck: copy superclass runTests() so we can instantiate our own runner class;
-    # can't do it early because we don't have access to nose's config object.
+    # XXX yuck: copy superclass runTests() so we can instantiate our own
+    # runner class; can't do it early because we don't have access to
+    # nose's config object.
     def runTests(self):
         self.testRunner = TestRunner(self.config)
         # the rest is mostly duplicate code ;-(
@@ -18,7 +18,6 @@ class TestProgram(nose.core.TestProgram):
         self.result = self.testRunner.run(self.test)
         self.success = self.result.wasSuccessful()
         return self.success
-
 
 class TestResult(unittest.TestResult):
     _nose_css = '''\
@@ -56,7 +55,6 @@ class TestResult(unittest.TestResult):
         }
     </style>
     '''
-
 
     _show_hide_js = '''
     <script>
@@ -127,7 +125,6 @@ class TestResult(unittest.TestResult):
 ''' % locals())
         return result
 
-
 class TestRunner(object):
     def __init__(self, config):
         self.config = config
@@ -143,7 +140,6 @@ class TestRunner(object):
         self.result = result
         return result
 
-
 def nose(line):
     test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
@@ -153,7 +149,6 @@ def nose(line):
 
     tester = TestProgram(argv=['dummy'], suite=tests)
     return tester.result
-
 
 def load_ipython_extension(ipython):
     from IPython.core.magic import register_line_magic
