@@ -1,25 +1,11 @@
 import types
 import cgi
-import unittest
+import StringIO
 
 import nose.core
 from nose import loader as nose_loader
 
-class TestProgram(nose.core.TestProgram):
-    # XXX yuck: copy superclass runTests() so we can instantiate our own
-    # runner class; can't do it early because we don't have access to
-    # nose's config object.
-    def runTests(self):
-        self.testRunner = TestRunner(self.config)
-        # the rest is mostly duplicate code ;-(
-        plug_runner = self.config.plugins.prepareTestRunner(self.testRunner)
-        if plug_runner is not None:
-            self.testRunner = plug_runner
-        self.result = self.testRunner.run(self.test)
-        self.success = self.result.wasSuccessful()
-        return self.success
-
-class TestResult(unittest.TestResult):
+class TestResult(nose.core.TextTestResult):
     _nose_css = '''\
     <style type="text/css">
         span.nosefailedfunc {
@@ -125,20 +111,13 @@ class TestResult(unittest.TestResult):
 ''' % locals())
         return result
 
-class TestRunner(object):
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, test):
-        result = TestResult()
-        if hasattr(result, 'startTestRun'):   # python 2.7
-            result.startTestRun()
-        test(result)
-        if hasattr(result, 'stopTestRun'):
-            result.stopTestRun()
-        self.config.plugins.finalize(result)
-        self.result = result
-        return result
+class TestRunner(nose.core.TextTestRunner):
+    """Test runner to use our TestResult instead of nose's default version."""
+    def _makeResult(self):
+        return TestResult(self.stream,
+                          self.descriptions,
+                          self.verbosity,
+                          self.config)
 
 def nose(line):
     test_module = types.ModuleType('test_module')
@@ -147,8 +126,8 @@ def nose(line):
     loader = nose_loader.TestLoader()
     tests = loader.loadTestsFromModule(test_module)
 
-    tester = TestProgram(argv=['dummy'], suite=tests)
-    return tester.result
+    stream = StringIO.StringIO() # Hide output
+    return TestRunner(verbosity=0, stream=stream).run(tests)
 
 def load_ipython_extension(ipython):
     from IPython.core.magic import register_line_magic
