@@ -1,6 +1,8 @@
 from cStringIO import StringIO
 import cgi
 import os
+import random
+import traceback
 import types
 import unittest
 
@@ -9,6 +11,7 @@ from nose import loader as nose_loader
 from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
 from nose.plugins.manager import DefaultPluginManager
+import IPython
 
 
 class DummyUnittestStream:
@@ -27,27 +30,141 @@ class IPythonDisplay(Plugin):
     enabled = True
     score = 2
 
+    _nose_css = '''
+    <style type="text/css">
+        span.nosefailedfunc {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        div.noseresults {
+            width: 100%;
+        }
+        div.nosefailbar {
+            background: red;
+            float: left;
+            padding: 1ex 0px 1ex 0px;
+        }
+        div.nosepassbar {
+            background: green;
+            float: left;
+            padding: 1ex 0px 1ex 0px;
+        }
+        div.nosefailbanner {
+            width: 75%;
+            background: red;
+            padding: 0.5ex 0em 0.5ex 1em;
+            margin-top: 1ex;
+            margin-bottom: 0px;
+        }
+        pre.nosetraceback {
+            background: pink;
+            padding-left: 1em;
+            margin-left: 0px;
+            margin-top: 0px;
+            display: none;
+        }
+    </style>
+    '''
+
+    _show_hide_js = '''
+    <script>
+        setTimeout(function () {
+            $('.nosefailtoggle').bind(
+                'click',
+                function () {
+                    $(
+                        $(this)
+                            .parent()
+                            .parent()
+                            .children()
+                            .filter('.nosetraceback')
+                    ).toggle();
+                }
+            );},
+            0);
+    </script>
+    '''
+
+    _summary_template = '''
+    <div class="noseresults">
+      <div class="nosefailbar" style="width: {failpercent}%">&nbsp;</div>
+      <div class="nosepassbar" style="width: {passpercent}%">&nbsp;</div>
+      {text}
+    </div>
+    '''
+
+    def _summary(self, numtests, numfailed):
+        if numfailed > 0:
+            text = "%d/%d tests passed; %d failed" % (
+                numtests - numfailed, numtests, numfailed)
+        else:
+            text = "%d/%d tests passed" % (numtests, numtests)
+
+        failpercent = int(float(numfailed) / numtests * 100)
+        if numfailed > 0 and failpercent < 5:
+            # ensure the red bar is visible
+            failpercent = 5
+        passpercent = 100 - failpercent
+
+        return self._summary_template.format(**locals())
+
+    _tracebacks_template = '''
+    <div class="nosefailure">
+        <div class="nosefailbanner">
+          failed: <span class="nosefailedfunc">{name}</span>
+            [<a class="nosefailtoggle" href="#">toggle traceback</a>]
+        </div>
+        <pre class="nosetraceback">{formatted_traceback}</pre>
+    </div>
+    '''
+
+    def _tracebacks(self, failures):
+        output = []
+        for test, exc in failures:
+            name = cgi.escape(test.shortDescription() or str(test))
+            formatted_traceback = cgi.escape(
+                ''.join(traceback.format_exception(*exc)))
+            output.append(self._tracebacks_template.format(**locals()))
+        return ''.join(output)
+
+
     def __init__(self):
         super(IPythonDisplay, self).__init__()
         self.html = []
+        self.num_tests = 0
+        self.failures = []
+        self.html_id = 'ipython_nose_%d' % random.randint(1, 4*10**8)
+
+    def pub_js(self, js):
+        IPython.core.displaypub.publish_javascript(js)
+
+    def pub_html(self, html):
+        IPython.core.displaypub.publish_html(html)
+
+    def append(self, html):
+        self.pub_js('document.%s.append($("<strong>%s</strong>"));' % (self.html_id, html))
 
     def addSuccess(self, test):
-        self.html.append("<b style='color:green'>pass</b>")
+        self.append('.')
 
     def addError(self, test, err):
-        self.html.append("<b style='color:blue'>error</b>")
+        self.append('E')
+        self.failures.append((test, err))
 
     def addFailure(self, test, err):
-        self.html.append("<b style='color:red'>failure</b>")
+        self.append('F')
+        self.failures.append((test, err))
 
     def addSkip(self, test):
-        self.html.append("<b style='color:darkyellow'>skip</b>")
+        self.append('S')
 
     def begin(self):
-        self.html.append('<div><h1>Start plugin</h1>')
+        self.pub_html('<div id="%s"></div>' % self.html_id)
+        self.pub_js('document.%s = $("#%s");' % (self.html_id, self.html_id))
 
     def finalize(self, result):
-        self.html.append('<!-- end plugin --></div>')
+        self.result = result
+        self.pub_js('delete document.%s;' % self.html_id)
 
     def setOutputStream(self, stream):
         # grab for own use
@@ -61,13 +178,17 @@ class IPythonDisplay(Plugin):
         pass
 
     def startTest(self, test):
-        self.html.append('<div><h2>Starting %s</h2>' % cgi.escape(repr(test)))
+        self.num_tests += 1
 
     def stopTest(self, test):
-        self.html.append('</div>')
+        pass
 
     def _repr_html_(self):
-        return '\n'.join(self.html)
+        output = [self._nose_css, self._show_hide_js]
+
+        output.append(self._summary(self.num_tests, len(self.failures)))
+        output.append(self._tracebacks(self.failures))
+        return ''.join(output)
 
 
 def get_ipython_user_ns_as_a_module():
