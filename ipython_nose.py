@@ -1,4 +1,3 @@
-from cStringIO import StringIO
 import cgi
 import os
 import random
@@ -30,7 +29,7 @@ class IPythonDisplay(Plugin):
     enabled = True
     score = 2
 
-    _nose_css = '''
+    _nose_css = '''\
     <style type="text/css">
         span.nosefailedfunc {
             font-family: monospace;
@@ -190,12 +189,10 @@ class IPythonDisplay(Plugin):
         output.append(self._tracebacks(self.failures))
         return ''.join(output)
 
-
 def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
     return test_module
-
 
 def makeNoseConfig(env):
     """Load a Config, pre-filled with user config files if any are
@@ -205,9 +202,9 @@ def makeNoseConfig(env):
     manager = DefaultPluginManager()
     return Config(env=env, files=cfg_files, plugins=manager)
 
-
-def nose(line, test_module_getter=get_ipython_user_ns_as_a_module):
-    test_module = test_module_getter()
+def nose(line, test_module=get_ipython_user_ns_as_a_module):
+    if callable(test_module):
+        test_module = test_module()
     config = makeNoseConfig(os.environ)
     loader = nose_loader.TestLoader(config=config)
     tests = loader.loadTestsFromModule(test_module)
@@ -218,7 +215,6 @@ def nose(line, test_module_getter=get_ipython_user_ns_as_a_module):
         addplugins=[plug], exit=False, config=config)
 
     return plug
-
 
 def load_ipython_extension(ipython):
     from IPython.core.magic import register_line_magic
