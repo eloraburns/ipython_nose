@@ -209,7 +209,7 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
     tests = loader.loadTestsFromModule(test_module)
     plug = IPythonDisplay()
 
-    tester = nose_core.TestProgram(
+    nose_core.TestProgram(
         argv=['ipython-nose', '--with-ipython-html'], suite=tests,
         addplugins=[plug], exit=False, config=config)
 
