@@ -65,7 +65,6 @@ class TestIPythonDisplay(object):
         eq_('No tests found.', self.plugin._repr_html_())
 
     def test_tracebacks_escapes_test_name(self):
-        import pprint
         exception_tuple = get_raised_exception_tuple_with_message('>')
         tracebacks = self.plugin._tracebacks(
             [
