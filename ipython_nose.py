@@ -182,6 +182,9 @@ class IPythonDisplay(Plugin):
         pass
 
     def _repr_html_(self):
+        if self.num_tests <= 0:
+            return 'No tests found.'
+
         output = [self._nose_css, self._show_hide_js]
 
         output.append(self._summary(self.num_tests, len(self.failures)))
