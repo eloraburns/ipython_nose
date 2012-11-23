@@ -114,7 +114,7 @@ class IPythonDisplay(Plugin):
     </script>
     '''
 
-    _summary_template = '''
+    _summary_template_html = '''
     <div class="noseresults">
       <div class="nosefailbar" style="width: {failpercent}%">&nbsp;</div>
       <div class="nosepassbar" style="width: {passpercent}%">&nbsp;</div>
@@ -122,7 +122,9 @@ class IPythonDisplay(Plugin):
     </div>
     '''
 
-    def _summary(self, numtests, numfailed):
+    _summary_template_text = '''{text}'''
+
+    def _summary(self, numtests, numfailed, template):
         if numfailed > 0:
             text = "%d/%d tests passed; %d failed" % (
                 numtests - numfailed, numtests, numfailed)
@@ -135,7 +137,7 @@ class IPythonDisplay(Plugin):
             failpercent = 5
         passpercent = 100 - failpercent
 
-        return self._summary_template.format(**locals())
+        return template.format(**locals())
 
     _tracebacks_template = '''
     <div class="nosefailure">
@@ -211,12 +213,17 @@ class IPythonDisplay(Plugin):
 
         output = [self._nose_css, self._show_hide_js]
 
-        output.append(self._summary(self.num_tests, len(self.failures)))
+        output.append(self._summary(
+            self.num_tests, len(self.failures), self._summary_template_html))
         output.append(self._tracebacks(self.failures))
         return ''.join(output)
 
     def _repr_pretty_(self, p, cycle):
-        p.text("NOT IMPLEMENTED")
+        if self.num_tests <= 0:
+            p.text('No tests found.')
+            return
+        p.text(self._summary(
+            self.num_tests, len(self.failures), self._summary_template_text))
 
 def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
