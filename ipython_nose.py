@@ -1,16 +1,18 @@
 import cgi
 import os
-import random
 import traceback
+import sys
 import types
 import unittest
+import uuid
 
 from nose import core as nose_core
 from nose import loader as nose_loader
 from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
 from nose.plugins.manager import DefaultPluginManager
-import IPython
+from IPython.core import displaypub, magic
+from IPython.zmq.displayhook import ZMQShellDisplayHook
 
 
 class DummyUnittestStream:
@@ -20,6 +22,35 @@ class DummyUnittestStream:
         pass
     def flush(self, *arg):
         pass
+
+
+class NotebookLiveOutput(object):
+    def __init__(self):
+        self.output_id = 'ipython_nose_%s' % uuid.uuid4().hex
+        displaypub.publish_html(
+            '<div id="%s"></div>' % self.output_id)
+        displaypub.publish_javascript(
+            'document.%s = $("#%s");' % (self.output_id, self.output_id))
+
+    def finalize(self):
+        displaypub.publish_javascript('delete document.%s;' % self.output_id)
+
+    def publish_chars(self, chars):
+        displaypub.publish_javascript(
+            'document.%s.append($("<span>%s</span>"));' % (
+                self.output_id, cgi.escape(chars)))
+
+
+class ConsoleLiveOutput(object):
+    def __init__(self, stream_obj):
+        self.stream_obj = stream_obj
+
+    def finalize(self):
+        self.stream_obj.stream.write('\n')
+
+    def publish_chars(self, chars):
+        self.stream_obj.stream.write(chars)
+
 
 class IPythonDisplay(Plugin):
     """Do something nice in IPython."""
@@ -131,38 +162,31 @@ class IPythonDisplay(Plugin):
         self.html = []
         self.num_tests = 0
         self.failures = []
-        self.html_id = 'ipython_nose_%d' % random.randint(1, 4*10**8)
-
-    def pub_js(self, js):
-        IPython.core.displaypub.publish_javascript(js)
-
-    def pub_html(self, html):
-        IPython.core.displaypub.publish_html(html)
-
-    def append(self, html):
-        self.pub_js('document.%s.append($("<strong>%s</strong>"));' % (self.html_id, html))
 
     def addSuccess(self, test):
-        self.append('.')
+        self.live_output.publish_chars('.')
 
     def addError(self, test, err):
-        self.append('E')
+        self.live_output.publish_chars('E')
         self.failures.append((test, err))
 
     def addFailure(self, test, err):
-        self.append('F')
+        self.live_output.publish_chars('F')
         self.failures.append((test, err))
 
     def addSkip(self, test):
-        self.append('S')
+        self.live_output.publish_chars('S')
 
     def begin(self):
-        self.pub_html('<div id="%s"></div>' % self.html_id)
-        self.pub_js('document.%s = $("#%s");' % (self.html_id, self.html_id))
+        # This feels really hacky
+        if isinstance(sys.displayhook, ZMQShellDisplayHook):
+            self.live_output = NotebookLiveOutput()
+        else:
+            self.live_output = ConsoleLiveOutput(self)
 
     def finalize(self, result):
         self.result = result
-        self.pub_js('delete document.%s;' % self.html_id)
+        self.live_output.finalize()
 
     def setOutputStream(self, stream):
         # grab for own use
@@ -190,6 +214,9 @@ class IPythonDisplay(Plugin):
         output.append(self._summary(self.num_tests, len(self.failures)))
         output.append(self._tracebacks(self.failures))
         return ''.join(output)
+
+    def _repr_pretty_(self, p, cycle):
+        p.text("NOT IMPLEMENTED")
 
 def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
@@ -219,5 +246,4 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
     return plug
 
 def load_ipython_extension(ipython):
-    from IPython.core.magic import register_line_magic
-    register_line_magic(nose)
+    magic.register_line_magic(nose)
