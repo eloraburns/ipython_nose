@@ -52,6 +52,10 @@ class ConsoleLiveOutput(object):
         self.stream_obj.stream.write(chars)
 
 
+def html_escape(s):
+    return cgi.escape(str(s))
+
+
 class IPythonDisplay(Plugin):
     """Do something nice in IPython."""
 
@@ -114,15 +118,21 @@ class IPythonDisplay(Plugin):
     </script>
     '''
 
-    _summary_template_html = '''
+    def render_template(self, template, context):
+        escaper, text = template
+        escaped_context = dict(
+            (k, escaper(v)) for k, v in context.items())
+        return text.format(**escaped_context)
+
+    _summary_template_html = (html_escape, '''
     <div class="noseresults">
       <div class="nosefailbar" style="width: {failpercent}%">&nbsp;</div>
       <div class="nosepassbar" style="width: {passpercent}%">&nbsp;</div>
       {text}
     </div>
-    '''
+    ''')
 
-    _summary_template_text = '''{text}'''
+    _summary_template_text = (str, '''{text}\n''')
 
     def _summary(self, numtests, numfailed, template):
         if numfailed > 0:
@@ -137,9 +147,9 @@ class IPythonDisplay(Plugin):
             failpercent = 5
         passpercent = 100 - failpercent
 
-        return template.format(**locals())
+        return self.render_template(template, locals())
 
-    _tracebacks_template = '''
+    _tracebacks_template_html = (html_escape, '''
     <div class="nosefailure">
         <div class="nosefailbanner">
           failed: <span class="nosefailedfunc">{name}</span>
@@ -147,15 +157,18 @@ class IPythonDisplay(Plugin):
         </div>
         <pre class="nosetraceback">{formatted_traceback}</pre>
     </div>
-    '''
+    ''')
 
-    def _tracebacks(self, failures):
+    _tracebacks_template_text = (
+        str, '''========\n{name}\n========\n{formatted_traceback}\n''')
+
+    def _tracebacks(self, failures, template):
         output = []
         for test, exc in failures:
-            name = cgi.escape(test.shortDescription() or str(test))
-            formatted_traceback = cgi.escape(
-                ''.join(traceback.format_exception(*exc)))
-            output.append(self._tracebacks_template.format(**locals()))
+            name = test.shortDescription() or str(test)
+            formatted_traceback = ''.join(traceback.format_exception(*exc))
+            output.append(
+                self.render_template(template, locals()))
         return ''.join(output)
 
 
@@ -215,7 +228,8 @@ class IPythonDisplay(Plugin):
 
         output.append(self._summary(
             self.num_tests, len(self.failures), self._summary_template_html))
-        output.append(self._tracebacks(self.failures))
+        output.append(self._tracebacks(
+            self.failures, self._tracebacks_template_html))
         return ''.join(output)
 
     def _repr_pretty_(self, p, cycle):
@@ -224,6 +238,7 @@ class IPythonDisplay(Plugin):
             return
         p.text(self._summary(
             self.num_tests, len(self.failures), self._summary_template_text))
+        p.text(self._tracebacks(self.failures, self._tracebacks_template_text))
 
 def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
