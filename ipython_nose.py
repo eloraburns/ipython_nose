@@ -71,6 +71,13 @@ class IPythonDisplay(Plugin):
     enabled = True
     score = 2
 
+    def __init__(self, verbose):
+        super(IPythonDisplay, self).__init__()
+        self.verbose = verbose
+        self.html = []
+        self.num_tests = 0
+        self.failures = []
+
     _nose_css = '''\
     <style type="text/css">
         span.nosefailedfunc {
@@ -179,13 +186,6 @@ class IPythonDisplay(Plugin):
                 self.render_template(template, locals()))
         return ''.join(output)
 
-
-    def __init__(self, verbose):
-        super(IPythonDisplay, self).__init__()
-        self.verbose = verbose
-        self.html = []
-        self.num_tests = 0
-        self.failures = []
 
     def addSuccess(self, test):
         if self.verbose:
