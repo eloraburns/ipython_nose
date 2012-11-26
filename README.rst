@@ -27,7 +27,7 @@ run tests using Nose in an IPython Notebook. To use it:
   ``test_*`` functions, run them, and report how many passed and
   how many failed, with stack traces for each failure.
 
-* pass nose arguments in the magic::
+* pass nose arguments to the magic::
 
     %nose -v
 
