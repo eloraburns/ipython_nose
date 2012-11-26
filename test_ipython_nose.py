@@ -134,12 +134,21 @@ class TestIPythonDisplay(object):
         assert_in('>', tracebacks)
 
     def test_linkify_html_traceback(self):
-        frame_name = 'ipython-input-1-0123456789ab'
+        frame_number = '1'
+        frame_name = 'ipython-input-' + frame_number + '-0123456789ab'
         linkified = self.plugin.linkify_html_traceback(
             '&lt;' + frame_name + '&gt;')
-        eq_(
+        expected_link = (
             '&lt;<a href="#' +
             frame_name +
             '">' +
             frame_name +
-            '</a>&gt;', linkified)
+            '</a>')
+        assert expected_link in linkified, "\n%s\nnot in\n%s" % (
+            expected_link, linkified)
+        expected_selector = (
+            '$("div.prompt.input_prompt:contains([' +
+            frame_number +
+            '])")')
+        assert expected_selector in linkified, "\n%s\nnot in\n%s" % (
+            expected_selector, linkified)

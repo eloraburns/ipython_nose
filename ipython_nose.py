@@ -257,8 +257,8 @@ class IPythonDisplay(Plugin):
         input_id = matches.group(1)
         link = '<a href="#{target}">{target}</a>'.format(target=target)
         make_anchor_js = '''<script>
-            $('div.prompt.input_prompt:contains([{input_id}])')
-                .attr('id', '{target}');
+            $("div.prompt.input_prompt:contains([{input_id}])")
+                .attr("id", "{target}");
             </script>'''.format(input_id=input_id, target=target)
         return link + make_anchor_js
 
