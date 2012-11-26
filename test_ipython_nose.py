@@ -132,3 +132,14 @@ class TestIPythonDisplay(object):
 
         )
         assert_in('>', tracebacks)
+
+    def test_linkify_html_traceback(self):
+        frame_name = 'ipython-input-1-0123456789ab'
+        linkified = self.plugin.linkify_html_traceback(
+            '&lt;' + frame_name + '&gt;')
+        eq_(
+            '&lt;<a href="#' +
+            frame_name +
+            '">' +
+            frame_name +
+            '</a>&gt;', linkified)

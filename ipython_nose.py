@@ -1,6 +1,7 @@
 import cgi
 import os
 import traceback
+import re
 import shlex
 import string
 import sys
@@ -250,6 +251,23 @@ class IPythonDisplay(Plugin):
     def stopTest(self, test):
         pass
 
+    @staticmethod
+    def make_link(matches):
+        target = matches.group(0)
+        input_id = matches.group(1)
+        link = '<a href="#{target}">{target}</a>'.format(target=target)
+        make_anchor_js = '''<script>
+            $('div.prompt.input_prompt:contains([{input_id}])')
+                .attr('id', '{target}');
+            </script>'''.format(input_id=input_id, target=target)
+        return link + make_anchor_js
+
+    def linkify_html_traceback(self, html):
+        return re.sub(
+            r'ipython-input-(\d+)-[0-9a-f]{12}',
+            self.make_link,
+            html)
+
     def _repr_html_(self):
         if self.num_tests <= 0:
             return 'No tests found.'
@@ -258,8 +276,8 @@ class IPythonDisplay(Plugin):
 
         output.append(self._summary(
             self.num_tests, len(self.failures), self._summary_template_html))
-        output.append(self._tracebacks(
-            self.failures, self._tracebacks_template_html))
+        output.append(self.linkify_html_traceback(self._tracebacks(
+            self.failures, self._tracebacks_template_html)))
         return ''.join(output)
 
     def _repr_pretty_(self, p, cycle):
