@@ -1,6 +1,7 @@
 import cgi
 import os
 import traceback
+import shlex
 import string
 import sys
 import types
@@ -288,13 +289,13 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
     config = makeNoseConfig(os.environ)
     loader = nose_loader.TestLoader(config=config)
     tests = loader.loadTestsFromModule(test_module)
-    extra_args = line.split(' ')
+    extra_args = shlex.split(str(line))
+    argv = ['ipython-nose', '--with-ipython-html'] + extra_args
     verbose = '-v' in extra_args
     plug = IPythonDisplay(verbose=verbose)
 
     nose_core.TestProgram(
-        argv=['ipython-nose', '--with-ipython-html'] + extra_args, suite=tests,
-        addplugins=[plug], exit=False, config=config)
+        argv=argv, suite=tests, addplugins=[plug], exit=False, config=config)
 
     return plug
 

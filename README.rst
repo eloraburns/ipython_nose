@@ -27,12 +27,15 @@ run tests using Nose in an IPython Notebook. To use it:
   ``test_*`` functions, run them, and report how many passed and
   how many failed, with stack traces for each failure.
 
+* pass nose arguments in the magic::
+
+    %nose -v
+
+  ``-v`` is handled specially, but other arguments are passed to nosetests as
+  if they were passed at the command-line.
 
 Caveats
 -------
-
-* There's no way to pass various Nose options, e.g. a custom
-  regex for finding test functions, or selecting tests. Fixable.
 
 * Renaming tests leaves behind the old name: you might only see N
   test methods in your notebook, but Nose will discover and run N+1
@@ -58,7 +61,6 @@ Caveats
 TODO
 ----
 
-* Display passing tests (like ``nose -v``).
 * Have a cell magic to only run test-like things in the current cell, e.g.::
 
     %%nose
