@@ -71,7 +71,7 @@ class IPythonDisplay(Plugin):
     enabled = True
     score = 2
 
-    def __init__(self, verbose):
+    def __init__(self, verbose=False):
         super(IPythonDisplay, self).__init__()
         self.verbose = verbose
         self.html = []

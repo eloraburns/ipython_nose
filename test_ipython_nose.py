@@ -32,31 +32,37 @@ class TestIPythonDisplay(object):
         self.plugin = ipython_nose.IPythonDisplay()
 
     def test_summary_says_num_passed_and_total(self):
-        summary = self.plugin._summary(numtests=5, numfailed=3)
+        summary = self.plugin._summary(
+            numtests=5, numfailed=3, template=self.plugin._summary_template_text)
         assert_in('2/5 tests passed', summary)
 
     def test_summary_with_0_failed_doesnt_say_failed(self):
-        summary = self.plugin._summary(numtests=1, numfailed=0)
+        summary = self.plugin._summary(
+            numtests=1, numfailed=0, template=self.plugin._summary_template_text)
         assert_not_in('failed', summary)
 
     def test_summary_with_1_failed_does_say_failed(self):
-        summary = self.plugin._summary(numtests=1, numfailed=1)
+        summary = self.plugin._summary(
+            numtests=1, numfailed=1, template=self.plugin._summary_template_text)
         assert_in(' 1 failed', summary)
 
     def test_summary_with_0_failed_tests_has_0_and_100_bars(self):
-        summary = self.plugin._summary(numtests=1, numfailed=0)
+        summary = self.plugin._summary(
+            numtests=1, numfailed=0, template=self.plugin._summary_template_html)
         assert_in(' 0%', summary)
         assert_in(' 100%', summary)
 
     def test_summary_with_1_of_1000_passed_tests_has_5_and_95_bars(self):
         # numfailed goes from 0 to 5, so you can always see it clearly
-        summary = self.plugin._summary(numtests=1000, numfailed=999)
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=999, template=self.plugin._summary_template_html)
         assert_in(' 1%', summary)
         assert_in(' 99%', summary)
 
     def test_summary_with_999_of_1000_passed_tests_has_1_and_99_bars(self):
         # numfailed is truncated to 99 so you can always see a sliver of hope
-        summary = self.plugin._summary(numtests=1000, numfailed=1)
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=1, template=self.plugin._summary_template_html)
         assert_in(' 5%', summary)
         assert_in(' 95%', summary)
 
@@ -64,20 +70,53 @@ class TestIPythonDisplay(object):
         self.plugin.testsRun = 0
         eq_('No tests found.', self.plugin._repr_html_())
 
-    def test_tracebacks_escapes_test_name(self):
+    def test_repr_pretty_works_with_no_tests(self):
+        class MockPretty(object):
+            def text(self, line):
+                self.text_called_with = line
+        p = MockPretty()
+        self.plugin.testsRun = 0
+        self.plugin._repr_pretty_(p=p, cycle=False)
+        eq_('No tests found.', p.text_called_with)
+
+    def test_tracebacks_in_html_escapes_test_name(self):
         exception_tuple = get_raised_exception_tuple_with_message('>')
         tracebacks = self.plugin._tracebacks(
             [
                 (FakeTest(), exception_tuple),
-            ]
+            ],
+            self.plugin._tracebacks_template_html
         )
         assert_in('&lt;', tracebacks)
 
-    def test_tracebacks_escapes_traceback(self):
+    def test_tracebacks_in_html_escapes_traceback(self):
         exception_tuple = get_raised_exception_tuple_with_message('>')
         tracebacks = self.plugin._tracebacks(
             [
                 (FakeTest(), exception_tuple),
-            ]
+            ],
+            self.plugin._tracebacks_template_html
+
         )
         assert_in('&gt;', tracebacks)
+
+    def test_tracebacks_in_text_does_not_escape_test_name(self):
+        exception_tuple = get_raised_exception_tuple_with_message('>')
+        tracebacks = self.plugin._tracebacks(
+            [
+                (FakeTest(), exception_tuple),
+            ],
+            self.plugin._tracebacks_template_text
+        )
+        assert_in('>', tracebacks)
+
+    def test_tracebacks_in_text_does_not_escape_traceback(self):
+        exception_tuple = get_raised_exception_tuple_with_message('>')
+        tracebacks = self.plugin._tracebacks(
+            [
+                (FakeTest(), exception_tuple),
+            ],
+            self.plugin._tracebacks_template_text
+
+        )
+        assert_in('>', tracebacks)
