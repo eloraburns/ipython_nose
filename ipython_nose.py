@@ -1,6 +1,7 @@
 import cgi
 import os
 import traceback
+import string
 import sys
 import types
 import unittest
@@ -13,6 +14,20 @@ from nose.plugins.base import Plugin
 from nose.plugins.manager import DefaultPluginManager
 from IPython.core import displaypub, magic
 from IPython.zmq.displayhook import ZMQShellDisplayHook
+
+
+class Template(string.Formatter):
+    def __init__(self, template):
+        self._template = template
+
+    def format(self, context):
+        return self.vformat(self._template, (), context)
+
+    def convert_field(self, value, conversion):
+        if conversion == 'e':
+            return cgi.escape(value)
+        else:
+            return super(Template, self).convert_field(value, conversion)
 
 
 class DummyUnittestStream:
@@ -133,21 +148,15 @@ class IPythonDisplay(Plugin):
     </script>
     '''
 
-    def render_template(self, template, context):
-        escaper, text = template
-        escaped_context = dict(
-            (k, escaper(v)) for k, v in context.items())
-        return text.format(**escaped_context)
-
-    _summary_template_html = (html_escape, '''
+    _summary_template_html = Template('''
     <div class="noseresults">
-      <div class="nosefailbar" style="width: {failpercent}%">&nbsp;</div>
-      <div class="nosepassbar" style="width: {passpercent}%">&nbsp;</div>
-      {text}
+      <div class="nosefailbar" style="width: {failpercent:d}%">&nbsp;</div>
+      <div class="nosepassbar" style="width: {passpercent:d}%">&nbsp;</div>
+      {text!e}
     </div>
     ''')
 
-    _summary_template_text = (str, '''{text}\n''')
+    _summary_template_text = Template('''{text}\n''')
 
     def _summary(self, numtests, numfailed, template):
         if numfailed > 0:
@@ -162,28 +171,27 @@ class IPythonDisplay(Plugin):
             failpercent = 5
         passpercent = 100 - failpercent
 
-        return self.render_template(template, locals())
+        return template.format(locals())
 
-    _tracebacks_template_html = (html_escape, '''
+    _tracebacks_template_html = Template('''
     <div class="nosefailure">
         <div class="nosefailbanner">
-          failed: <span class="nosefailedfunc">{name}</span>
+          failed: <span class="nosefailedfunc">{name!e}</span>
             [<a class="nosefailtoggle" href="#">toggle traceback</a>]
         </div>
-        <pre class="nosetraceback">{formatted_traceback}</pre>
+        <pre class="nosetraceback">{formatted_traceback!e}</pre>
     </div>
     ''')
 
-    _tracebacks_template_text = (
-        str, '''========\n{name}\n========\n{formatted_traceback}\n''')
+    _tracebacks_template_text = Template(
+        '''========\n{name}\n========\n{formatted_traceback}\n''')
 
     def _tracebacks(self, failures, template):
         output = []
         for test, exc in failures:
             name = test.shortDescription() or str(test)
             formatted_traceback = ''.join(traceback.format_exception(*exc))
-            output.append(
-                self.render_template(template, locals()))
+            output.append(template.format(locals()))
         return ''.join(output)
 
 

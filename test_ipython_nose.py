@@ -22,6 +22,18 @@ def get_raised_exception_tuple_with_message(message):
         return sys.exc_info()
 
 
+class TestTemplate(object):
+    def test_str(self):
+        context = {'var': 'val<ue'}
+        template = ipython_nose.Template('{var}')
+        eq_('val<ue', template.format(context))
+
+    def test_escaped_str(self):
+        context = {'var': 'val<ue'}
+        template = ipython_nose.Template('{var!e}')
+        eq_('val&lt;ue', template.format(context))
+
+
 class FakeTest(object):
     def shortDescription(self):
         return '<'
