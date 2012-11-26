@@ -35,10 +35,15 @@ class NotebookLiveOutput(object):
     def finalize(self):
         displaypub.publish_javascript('delete document.%s;' % self.output_id)
 
-    def publish_chars(self, chars):
+    def write_chars(self, chars):
         displaypub.publish_javascript(
             'document.%s.append($("<span>%s</span>"));' % (
                 self.output_id, cgi.escape(chars)))
+
+    def write_line(self, line):
+        displaypub.publish_javascript(
+            'document.%s.append($("<div>%s</div>"));' % (
+                self.output_id, cgi.escape(line)))
 
 
 class ConsoleLiveOutput(object):
@@ -48,8 +53,11 @@ class ConsoleLiveOutput(object):
     def finalize(self):
         self.stream_obj.stream.write('\n')
 
-    def publish_chars(self, chars):
+    def write_chars(self, chars):
         self.stream_obj.stream.write(chars)
+
+    def write_line(self, line):
+        self.stream_obj.stream.write(line + '\n')
 
 
 def html_escape(s):
@@ -172,25 +180,38 @@ class IPythonDisplay(Plugin):
         return ''.join(output)
 
 
-    def __init__(self):
+    def __init__(self, verbose):
         super(IPythonDisplay, self).__init__()
+        self.verbose = verbose
         self.html = []
         self.num_tests = 0
         self.failures = []
 
     def addSuccess(self, test):
-        self.live_output.publish_chars('.')
+        if self.verbose:
+            self.live_output.write_line(str(test) + " ... pass")
+        else:
+            self.live_output.write_chars('.')
 
     def addError(self, test, err):
-        self.live_output.publish_chars('E')
+        if self.verbose:
+            self.live_output.write_line(str(test) + " ... error")
+        else:
+            self.live_output.write_chars('E')
         self.failures.append((test, err))
 
     def addFailure(self, test, err):
-        self.live_output.publish_chars('F')
+        if self.verbose:
+            self.live_output.write_line(str(test) + " ... fail")
+        else:
+            self.live_output.write_chars('F')
         self.failures.append((test, err))
 
     def addSkip(self, test):
-        self.live_output.publish_chars('S')
+        if self.verbose:
+            self.live_output.write_line(str(test) + " ... SKIP")
+        else:
+            self.live_output.write_chars('S')
 
     def begin(self):
         # This feels really hacky
@@ -259,10 +280,12 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
     config = makeNoseConfig(os.environ)
     loader = nose_loader.TestLoader(config=config)
     tests = loader.loadTestsFromModule(test_module)
-    plug = IPythonDisplay()
+    extra_args = line.split(' ')
+    verbose = '-v' in extra_args
+    plug = IPythonDisplay(verbose=verbose)
 
     nose_core.TestProgram(
-        argv=['ipython-nose', '--with-ipython-html'], suite=tests,
+        argv=['ipython-nose', '--with-ipython-html'] + extra_args, suite=tests,
         addplugins=[plug], exit=False, config=config)
 
     return plug
