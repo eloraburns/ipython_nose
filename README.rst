@@ -41,8 +41,8 @@ Caveats
   test methods in your notebook, but Nose will discover and run N+1
   tests. Not sure how to fix this one.
 
-* There are no links between the stack traces and the code: for
-  example, a stack trace that looks like::
+* Links between the stack traces and the code are only cell deep. For example,
+  in a stack trace that looks like::
 
     Traceback (most recent call last):
       File "/usr/lib/python2.7/dist-packages/nose/case.py", line 197, in runTest
@@ -51,12 +51,8 @@ Caveats
         assert myfunc() == 42
     AssertionError
 
-  has the information you need to jump to the failing code, but does
-  nothing with it. In particular, that synthetic filename
-  (ipython-input-10-a3ae96abafeb) means that test_myfunc() is in
-  cell #10 of your notebook. Go to that cell, then line 2, and you
-  find the failing test. ipython_nose needs some UI magic to make
-  this transparent.
+  the frame name ``ipython-input-10-a3ae96abafeb`` is a link to cell 10, but
+  not specifically to line 2.
 
 TODO
 ----
