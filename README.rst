@@ -2,7 +2,10 @@ ipython_nose
 ------------
 
 This little IPython extension gives you the ability to discover and
-run tests using Nose in an IPython Notebook. To use it:
+run tests using Nose in an IPython Notebook.
+
+Installation
+------------
 
 * Make sure your IPython Notebook server can import ``ipython_nose.py`` (e.g.
   copy it to a directory in your ``PYTHONPATH``, or modify ``PYTHONPATH``
@@ -12,6 +15,15 @@ run tests using Nose in an IPython Notebook. To use it:
     % ls
     ipython_nose.py
     % ipython notebook
+
+* You can also install it in a virtualenv in developent mode::
+
+    % cd ipython-nose
+    % pip install -e .
+
+
+Usage
+-----
 
 * Add a cell containing::
 
