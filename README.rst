@@ -4,22 +4,27 @@ ipython_nose
 This little IPython extension gives you the ability to discover and
 run tests using Nose in an IPython Notebook. To use it:
 
-* make sure your IPython Notebook server can import ipython_nose.py
-  (e.g. copy it to a directory in your ``PYTHONPATH``, or modify
-  ``PYTHONPATH`` before starting IPython Notebook)
+* Make sure your IPython Notebook server can import ``ipython_nose.py`` (e.g.
+  copy it to a directory in your ``PYTHONPATH``, or modify ``PYTHONPATH``
+  before starting IPython Notebook). It's also probably sufficient to have
+  ``ipython_nose.py`` in the directory from which you run the notebook, e.g.::
 
-* add a cell containing::
+    % ls
+    ipython_nose.py
+    % ipython notebook
+
+* Add a cell containing::
 
     %load_ext ipython_nose
 
-  somewhere in your notebook
+  somewhere in your notebook.
 
-* write tests that conform to Nose conventions, e.g.::
+* Write tests that conform to Nose conventions, e.g.::
 
     def test_arithmetic():
         assert 1+1 == 2
 
-* add a cell consisting of::
+* Add a cell consisting of::
 
     %nose
 
@@ -27,9 +32,9 @@ run tests using Nose in an IPython Notebook. To use it:
   ``test_*`` functions, run them, and report how many passed and
   how many failed, with stack traces for each failure.
 
-* pass nose arguments to the magic::
+* Pass standard nose arguments to the magic::
 
-    %nose -v
+    %nose -v -x
 
   ``-v`` is handled specially, but other arguments are passed to nosetests as
   if they were passed at the command-line.
