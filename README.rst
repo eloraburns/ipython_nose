@@ -4,6 +4,7 @@ ipython_nose
 This little IPython extension gives you the ability to discover and
 run tests using Nose in an IPython Notebook.
 
+
 Installation
 ------------
 
@@ -12,14 +13,14 @@ Installation
   before starting IPython Notebook). It's also probably sufficient to have
   ``ipython_nose.py`` in the directory from which you run the notebook, e.g.::
 
-    % ls
+    $ ls
     ipython_nose.py
-    % ipython notebook
+    $ ipython notebook
 
 * You can also install it in a virtualenv in developent mode::
 
-    % cd ipython-nose
-    % pip install -e .
+    $ cd ipython-nose
+    $ pip install -e .
 
 
 Usage
@@ -51,6 +52,7 @@ Usage
   ``-v`` is handled specially, but other arguments are passed to nosetests as
   if they were passed at the command-line.
 
+
 Caveats
 -------
 
@@ -71,6 +73,7 @@ Caveats
   the frame name ``ipython-input-10-a3ae96abafeb`` is a link to cell 10, but
   not specifically to line 2.
 
+
 TODO
 ----
 
@@ -89,6 +92,11 @@ Authors
 * Greg Ward <greg at gerg dot ca>
 
 Thanks to Fernando Perez and Greg Wilson for tips, ideas, etc.
+
+Thanks to Catherine Devlin for publishing ipython_doctester_ so we could peek
+at its guts.
+
+.. ipython_doctester: `https://github.com/catherinedevlin/ipython_doctester/`_
 
 
 Get the code
