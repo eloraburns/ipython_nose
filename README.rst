@@ -93,10 +93,9 @@ Authors
 
 Thanks to Fernando Perez and Greg Wilson for tips, ideas, etc.
 
-Thanks to Catherine Devlin for publishing ipython_doctester_ so we could peek
+Thanks to Catherine Devlin for publishing `ipython_doctester
+<https://github.com/catherinedevlin/ipython_doctester/>`_ so we could peek
 at its guts.
-
-.. ipython_doctester: `https://github.com/catherinedevlin/ipython_doctester/`_
 
 
 Get the code
