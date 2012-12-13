@@ -94,6 +94,7 @@ class IPythonDisplay(Plugin):
         self.html = []
         self.num_tests = 0
         self.failures = []
+        self.skipped = 0
 
     _nose_css = '''\
     <style type="text/css">
@@ -153,6 +154,7 @@ class IPythonDisplay(Plugin):
     _summary_template_html = Template('''
     <div class="noseresults">
       <div class="nosefailbar" style="width: {failpercent:d}%">&nbsp;</div>
+      <div class="noseskipbar" style="width: {skippercent:d}%">&nbsp;</div>
       <div class="nosepassbar" style="width: {passpercent:d}%">&nbsp;</div>
       {text!e}
     </div>
@@ -160,10 +162,10 @@ class IPythonDisplay(Plugin):
 
     _summary_template_text = Template('''{text}\n''')
 
-    def _summary(self, numtests, numfailed, template):
+    def _summary(self, numtests, numfailed, numskipped, template):
         if numfailed > 0:
-            text = "%d/%d tests passed; %d failed" % (
-                numtests - numfailed, numtests, numfailed)
+            text = "%d/%d tests passed; %d failed; %d skipped" % (
+                numtests - numfailed, numtests, numfailed, numskipped)
         else:
             text = "%d/%d tests passed" % (numtests, numtests)
 
@@ -171,7 +173,13 @@ class IPythonDisplay(Plugin):
         if numfailed > 0 and failpercent < 5:
             # ensure the red bar is visible
             failpercent = 5
-        passpercent = 100 - failpercent
+
+        # Ditto for the yellow bar
+        skippercent = int(float(numfailed) / numtests * 100)
+        if numskipped > 0 and skippercent < 5:
+            skippercent = 5
+
+        passpercent = 100 - failpercent - skippercent
 
         return template.format(locals())
 
@@ -217,11 +225,14 @@ class IPythonDisplay(Plugin):
             self.live_output.write_chars('F')
         self.failures.append((test, err))
 
+    # Deprecated in newer versions of nose; skipped tests are handled in
+    # addError in newer versions
     def addSkip(self, test):
         if self.verbose:
             self.live_output.write_line(str(test) + " ... SKIP")
         else:
             self.live_output.write_chars('S')
+        self.skipped += 1
 
     def begin(self):
         # This feels really hacky
@@ -275,7 +286,8 @@ class IPythonDisplay(Plugin):
         output = [self._nose_css, self._show_hide_js]
 
         output.append(self._summary(
-            self.num_tests, len(self.failures), self._summary_template_html))
+            self.num_tests, len(self.failures), self.skipped,
+            self._summary_template_html))
         output.append(self.linkify_html_traceback(self._tracebacks(
             self.failures, self._tracebacks_template_html)))
         return ''.join(output)
@@ -285,7 +297,8 @@ class IPythonDisplay(Plugin):
             p.text('No tests found.')
             return
         p.text(self._summary(
-            self.num_tests, len(self.failures), self._summary_template_text))
+            self.num_tests, len(self.failures), self.skipped,
+            self._summary_template_text))
         p.text(self._tracebacks(self.failures, self._tracebacks_template_text))
 
 def get_ipython_user_ns_as_a_module():
