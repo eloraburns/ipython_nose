@@ -13,6 +13,7 @@ from nose import core as nose_core
 from nose import loader as nose_loader
 from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
+from nose.plugins.skip import SkipTest
 from nose.plugins.manager import DefaultPluginManager
 from IPython.core import displaypub, magic
 from IPython.zmq.displayhook import ZMQShellDisplayHook
@@ -94,6 +95,7 @@ class IPythonDisplay(Plugin):
         self.html = []
         self.num_tests = 0
         self.failures = []
+        self.skipped = 0
 
     _nose_css = '''\
     <style type="text/css">
@@ -104,15 +106,18 @@ class IPythonDisplay(Plugin):
         div.noseresults {
             width: 100%;
         }
-        div.nosefailbar {
-            background: red;
+        div.nosebar {
             float: left;
             padding: 1ex 0px 1ex 0px;
         }
-        div.nosepassbar {
+        div.nosebar.fail {
+            background: red;
+        }
+        div.nosebar.pass {
             background: green;
-            float: left;
-            padding: 1ex 0px 1ex 0px;
+        }
+        div.nosebar.skip {
+            background: yellow;
         }
         div.nosefailbanner {
             width: 75%;
@@ -152,18 +157,19 @@ class IPythonDisplay(Plugin):
 
     _summary_template_html = Template('''
     <div class="noseresults">
-      <div class="nosefailbar" style="width: {failpercent:d}%">&nbsp;</div>
-      <div class="nosepassbar" style="width: {passpercent:d}%">&nbsp;</div>
+      <div class="nosebar fail" style="width: {failpercent:d}%">&nbsp;</div>
+      <div class="nosebar skip" style="width: {skippercent:d}%">&nbsp;</div>
+      <div class="nosebar pass" style="width: {passpercent:d}%">&nbsp;</div>
       {text!e}
     </div>
     ''')
 
     _summary_template_text = Template('''{text}\n''')
 
-    def _summary(self, numtests, numfailed, template):
+    def _summary(self, numtests, numfailed, numskipped, template):
         if numfailed > 0:
-            text = "%d/%d tests passed; %d failed" % (
-                numtests - numfailed, numtests, numfailed)
+            text = "%d/%d tests passed; %d failed; %d skipped" % (
+                numtests - numfailed, numtests, numfailed, numskipped)
         else:
             text = "%d/%d tests passed" % (numtests, numtests)
 
@@ -171,7 +177,13 @@ class IPythonDisplay(Plugin):
         if numfailed > 0 and failpercent < 5:
             # ensure the red bar is visible
             failpercent = 5
-        passpercent = 100 - failpercent
+
+        # Ditto for the yellow bar
+        skippercent = int(float(numskipped) / numtests * 100)
+        if numskipped > 0 and skippercent < 5:
+            skippercent = 5
+
+        passpercent = 100 - failpercent - skippercent
 
         return template.format(locals())
 
@@ -204,6 +216,8 @@ class IPythonDisplay(Plugin):
             self.live_output.write_chars('.')
 
     def addError(self, test, err):
+        if issubclass(err[0], SkipTest):
+            return self.addSkip(test)
         if self.verbose:
             self.live_output.write_line(str(test) + " ... error")
         else:
@@ -217,11 +231,14 @@ class IPythonDisplay(Plugin):
             self.live_output.write_chars('F')
         self.failures.append((test, err))
 
+    # Deprecated in newer versions of nose; skipped tests are handled in
+    # addError in newer versions
     def addSkip(self, test):
         if self.verbose:
             self.live_output.write_line(str(test) + " ... SKIP")
         else:
             self.live_output.write_chars('S')
+        self.skipped += 1
 
     def begin(self):
         # This feels really hacky
@@ -275,7 +292,8 @@ class IPythonDisplay(Plugin):
         output = [self._nose_css, self._show_hide_js]
 
         output.append(self._summary(
-            self.num_tests, len(self.failures), self._summary_template_html))
+            self.num_tests, len(self.failures), self.skipped,
+            self._summary_template_html))
         output.append(self.linkify_html_traceback(self._tracebacks(
             self.failures, self._tracebacks_template_html)))
         return ''.join(output)
@@ -285,13 +303,16 @@ class IPythonDisplay(Plugin):
             p.text('No tests found.')
             return
         p.text(self._summary(
-            self.num_tests, len(self.failures), self._summary_template_text))
+            self.num_tests, len(self.failures), self.skipped,
+            self._summary_template_text))
         p.text(self._tracebacks(self.failures, self._tracebacks_template_text))
+
 
 def get_ipython_user_ns_as_a_module():
     test_module = types.ModuleType('test_module')
     test_module.__dict__.update(get_ipython().user_ns)
     return test_module
+
 
 def makeNoseConfig(env):
     """Load a Config, pre-filled with user config files if any are
@@ -301,6 +322,7 @@ def makeNoseConfig(env):
     manager = DefaultPluginManager()
     return Config(env=env, files=cfg_files, plugins=manager)
 
+
 def nose(line, test_module=get_ipython_user_ns_as_a_module):
     if callable(test_module):
         test_module = test_module()
@@ -308,7 +330,7 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
     loader = nose_loader.TestLoader(config=config)
     tests = loader.loadTestsFromModule(test_module)
     extra_args = shlex.split(str(line))
-    argv = ['ipython-nose', '--with-ipython-html'] + extra_args
+    argv = ['ipython-nose', '--with-ipython-html', '--no-skip'] + extra_args
     verbose = '-v' in extra_args
     plug = IPythonDisplay(verbose=verbose)
 
@@ -316,6 +338,7 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
         argv=argv, suite=tests, addplugins=[plug], exit=False, config=config)
 
     return plug
+
 
 def load_ipython_extension(ipython):
     magic.register_line_magic(nose)
