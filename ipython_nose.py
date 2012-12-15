@@ -22,7 +22,7 @@ class Template(string.Formatter):
     def __init__(self, template):
         self._template = template
 
-    def format(self, context):
+    def format(self, **context):
         return self.vformat(self._template, (), context)
 
     def convert_field(self, value, conversion):
@@ -223,12 +223,12 @@ class IPythonDisplay(Plugin):
 
         failpercent = int(float(numfailed) / numtests * 100)
         if numfailed > 0 and failpercent < 5:
-            # ensure the red bar is visible
+            # Ensure the red bar is visible
             failpercent = 5
 
-        # Ditto for the yellow bar
         skippercent = int(float(numskipped) / numtests * 100)
         if numskipped > 0 and skippercent < 5:
+            # Ditto for the yellow bar
             skippercent = 5
 
         passpercent = 100 - failpercent - skippercent

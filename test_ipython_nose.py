@@ -24,14 +24,12 @@ def get_raised_exception_tuple_with_message(message):
 
 class TestTemplate(object):
     def test_str(self):
-        context = {'var': 'val<ue'}
         template = ipython_nose.Template('{var}')
-        eq_('val<ue', template.format(context))
+        eq_('val<ue', template.format(var='val<ue'))
 
     def test_escaped_str(self):
-        context = {'var': 'val<ue'}
         template = ipython_nose.Template('{var!e}')
-        eq_('val&lt;ue', template.format(context))
+        eq_('val&lt;ue', template.format(var='val<ue'))
 
 
 class FakeTest(object):
@@ -45,38 +43,79 @@ class TestIPythonDisplay(object):
 
     def test_summary_says_num_passed_and_total(self):
         summary = self.plugin._summary(
-            numtests=5, numfailed=3, template=self.plugin._summary_template_text)
+            numtests=5, numfailed=3, numskipped=0,
+            template=self.plugin._summary_template_text)
         assert_in('2/5 tests passed', summary)
 
     def test_summary_with_0_failed_doesnt_say_failed(self):
         summary = self.plugin._summary(
-            numtests=1, numfailed=0, template=self.plugin._summary_template_text)
+            numtests=1, numfailed=0, numskipped=0,
+            template=self.plugin._summary_template_text)
         assert_not_in('failed', summary)
 
     def test_summary_with_1_failed_does_say_failed(self):
         summary = self.plugin._summary(
-            numtests=1, numfailed=1, template=self.plugin._summary_template_text)
+            numtests=1, numfailed=1, numskipped=0,
+            template=self.plugin._summary_template_text)
         assert_in(' 1 failed', summary)
 
     def test_summary_with_0_failed_tests_has_0_and_100_bars(self):
         summary = self.plugin._summary(
-            numtests=1, numfailed=0, template=self.plugin._summary_template_html)
+            numtests=1, numfailed=0, numskipped=0,
+            template=self.plugin._summary_template_html)
         assert_in(' 0%', summary)
         assert_in(' 100%', summary)
 
-    def test_summary_with_1_of_1000_passed_tests_has_5_and_95_bars(self):
-        # numfailed goes from 0 to 5, so you can always see it clearly
+    def test_summary_with_999_of_1000_failed_tests_has_1_and_99_bars(self):
+        # numfailed is truncated to 99 so you can always see a sliver of hope
         summary = self.plugin._summary(
-            numtests=1000, numfailed=999, template=self.plugin._summary_template_html)
+            numtests=1000, numfailed=999, numskipped=0,
+            template=self.plugin._summary_template_html)
+        assert_in(' 0%', summary)
         assert_in(' 1%', summary)
         assert_in(' 99%', summary)
 
-    def test_summary_with_999_of_1000_passed_tests_has_1_and_99_bars(self):
-        # numfailed is truncated to 99 so you can always see a sliver of hope
+    def test_summary_with_999_of_1000_skipped_tests_has_1_and_99_bars(self):
         summary = self.plugin._summary(
-            numtests=1000, numfailed=1, template=self.plugin._summary_template_html)
+            numtests=1000, numfailed=0, numskipped=999,
+            template=self.plugin._summary_template_html)
+        assert_in(' 0%', summary)
+        assert_in(' 1%', summary)
+        assert_in(' 99%', summary)
+
+    def test_summary_with_1_of_1000_failed_tests_has_5_and_95_bars(self):
+        # numfailed goes from 0 to 5, so you can always see it clearly
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=1, numskipped=0,
+            template=self.plugin._summary_template_html)
+        assert_in(' 0%', summary)
         assert_in(' 5%', summary)
         assert_in(' 95%', summary)
+
+    def test_summary_with_1_of_1000_skipped_tests_has_5_and_95_bars(self):
+        # numfailed goes from 0 to 5, so you can always see it clearly
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=0, numskipped=1,
+            template=self.plugin._summary_template_html)
+        assert_in(' 0%', summary)
+        assert_in(' 5%', summary)
+        assert_in(' 95%', summary)
+
+    def test_summary_with_1_failed_and_skiped_has_5_and_90_bars(self):
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=1, numskipped=1,
+            template=self.plugin._summary_template_html)
+        assert_not_in(' 0%', summary)
+        assert_in(' 5%', summary)
+        assert_in(' 90%', summary)
+
+    def test_summary_with_998_failed_and_skiped_has_2_and_49_bars(self):
+        summary = self.plugin._summary(
+            numtests=1000, numfailed=499, numskipped=499,
+            template=self.plugin._summary_template_html)
+        assert_not_in(' 0%', summary)
+        assert_in(' 2%', summary)
+        assert_in(' 49%', summary)
 
     def test_repr_html_works_with_no_tests(self):
         self.plugin.testsRun = 0
