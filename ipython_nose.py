@@ -6,7 +6,6 @@ import shlex
 import string
 import sys
 import types
-import unittest
 import uuid
 
 from nose import core as nose_core
@@ -36,8 +35,10 @@ class Template(string.Formatter):
 class DummyUnittestStream:
     def write(self, *arg):
         pass
+
     def writeln(self, *arg):
         pass
+
     def flush(self, *arg):
         pass
 
@@ -198,9 +199,15 @@ class IPythonDisplay(Plugin):
 
     _summary_template_html = Template('''
     <div class="noseresults">
-      <div class="nosebar fail leftmost" style="width: {failpercent:d}%">&nbsp;</div>
-      <div class="nosebar skip" style="width: {skippercent:d}%">&nbsp;</div>
-      <div class="nosebar pass rightmost" style="width: {passpercent:d}%">&nbsp;</div>
+      <div class="nosebar fail leftmost" style="width: {failpercent:d}%">
+          &nbsp;
+      </div>
+      <div class="nosebar skip" style="width: {skippercent:d}%">
+          &nbsp;
+      </div>
+      <div class="nosebar pass rightmost" style="width: {passpercent:d}%">
+          &nbsp;
+      </div>
       {text!e}
     </div>
     ''')
@@ -226,7 +233,9 @@ class IPythonDisplay(Plugin):
 
         passpercent = 100 - failpercent - skippercent
 
-        return template.format(locals())
+        return template.format(
+            text=text, failpercent=failpercent, skippercent=skippercent,
+            passpercent=passpercent)
 
     _tracebacks_template_html = Template('''
     <div class="nosefailure">
@@ -246,9 +255,10 @@ class IPythonDisplay(Plugin):
         for test, exc in failures:
             name = test.shortDescription() or str(test)
             formatted_traceback = ''.join(traceback.format_exception(*exc))
-            output.append(template.format(locals()))
+            output.append(template.format(
+                name=name, formatted_traceback=formatted_traceback
+            ))
         return ''.join(output)
-
 
     def addSuccess(self, test):
         if self.verbose:
