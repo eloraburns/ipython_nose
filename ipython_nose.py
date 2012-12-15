@@ -15,7 +15,6 @@ from nose.plugins.base import Plugin
 from nose.plugins.skip import SkipTest
 from nose.plugins.manager import DefaultPluginManager
 from IPython.core import displaypub, magic
-from IPython.zmq.displayhook import ZMQShellDisplayHook
 
 
 class Template(string.Formatter):
@@ -293,6 +292,7 @@ class IPythonDisplay(Plugin):
 
     def begin(self):
         # This feels really hacky
+        from IPython.zmq.displayhook import ZMQShellDisplayHook
         if isinstance(sys.displayhook, ZMQShellDisplayHook):
             self.live_output = NotebookLiveOutput()
         else:
