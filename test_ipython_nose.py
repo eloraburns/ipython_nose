@@ -47,6 +47,12 @@ class TestIPythonDisplay(object):
             template=self.plugin._summary_template_text)
         assert_in('2/5 tests passed', summary)
 
+    def test_summary_with_0_skipped_doesnt_say_skipped(self):
+        summary = self.plugin._summary(
+            numtests=1, numfailed=0, numskipped=0,
+            template=self.plugin._summary_template_text)
+        assert_not_in('skipped', summary)
+
     def test_summary_with_0_failed_doesnt_say_failed(self):
         summary = self.plugin._summary(
             numtests=1, numfailed=0, numskipped=0,
@@ -58,6 +64,12 @@ class TestIPythonDisplay(object):
             numtests=1, numfailed=1, numskipped=0,
             template=self.plugin._summary_template_text)
         assert_in(' 1 failed', summary)
+
+    def test_summary_with_1_skipped_does_say_skipped(self):
+        summary = self.plugin._summary(
+            numtests=1, numfailed=0, numskipped=1,
+            template=self.plugin._summary_template_text)
+        assert_in(' 1 skipped', summary)
 
     def test_summary_with_0_failed_tests_has_0_and_100_bars(self):
         summary = self.plugin._summary(

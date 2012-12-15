@@ -215,11 +215,11 @@ class IPythonDisplay(Plugin):
     _summary_template_text = Template('''{text}\n''')
 
     def _summary(self, numtests, numfailed, numskipped, template):
+        text = "%d/%d tests passed" % (numtests - numfailed, numtests)
         if numfailed > 0:
-            text = "%d/%d tests passed; %d failed; %d skipped" % (
-                numtests - numfailed, numtests, numfailed, numskipped)
-        else:
-            text = "%d/%d tests passed" % (numtests, numtests)
+            text += "; %d failed" % numfailed
+        if numskipped > 0:
+            text += "; %d skipped" % numskipped
 
         failpercent = int(float(numfailed) / numtests * 100)
         if numfailed > 0 and failpercent < 5:
