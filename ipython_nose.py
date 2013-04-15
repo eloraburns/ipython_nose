@@ -292,7 +292,10 @@ class IPythonDisplay(Plugin):
 
     def begin(self):
         # This feels really hacky
-        from IPython.zmq.displayhook import ZMQShellDisplayHook
+        try: # >= ipython 1.0
+            from IPython.kernel.zmq.displayhook import ZMQShellDisplayHook
+        except ImportError:
+            from IPython.zmq.displayhook import ZMQShellDisplayHook
         if isinstance(sys.displayhook, ZMQShellDisplayHook):
             self.live_output = NotebookLiveOutput()
         else:
