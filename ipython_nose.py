@@ -45,23 +45,35 @@ class DummyUnittestStream:
 class NotebookLiveOutput(object):
     def __init__(self):
         self.output_id = 'ipython_nose_%s' % uuid.uuid4().hex
-        displaypub.publish_html(
-            '<div id="%s"></div>' % self.output_id)
-        displaypub.publish_javascript(
-            'document.%s = $("#%s");' % (self.output_id, self.output_id))
+        displaypub.publish_display_data(
+         u'IPython.core.displaypub.publish_html',
+         {'text/html':'<div id="%s"></div>' % self.output_id})
+        displaypub.publish_display_data(
+         u'IPython.core.displaypub.publish_javascript',
+         {'application/javascript':
+          'document.%s = $("#%s");' % (self.output_id, self.output_id)})
 
     def finalize(self):
-        displaypub.publish_javascript('delete document.%s;' % self.output_id)
+        displaypub.publish_display_data(
+         u'IPython.core.displaypub.publish_javascript',
+         {'application/javascript':
+          'delete document.%s;' % self.output_id})
+
 
     def write_chars(self, chars):
-        displaypub.publish_javascript(
-            'document.%s.append($("<span>%s</span>"));' % (
-                self.output_id, cgi.escape(chars)))
+        displaypub.publish_display_data(
+         u'IPython.core.displaypub.publish_javascript',
+         {'application/javascript':
+          'document.%s.append($("<span>%s</span>"));' % (
+                self.output_id, cgi.escape(chars))})
 
     def write_line(self, line):
-        displaypub.publish_javascript(
-            'document.%s.append($("<div>%s</div>"));' % (
-                self.output_id, cgi.escape(line)))
+        displaypub.publish_display_data(
+         u'IPython.core.displaypub.publish_javascript',
+         {'application/javascript':
+          'document.%s.append($("<div>%s</div>"));' % (
+                self.output_id, cgi.escape(line))})
+
 
 
 class ConsoleLiveOutput(object):
