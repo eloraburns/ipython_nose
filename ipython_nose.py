@@ -14,7 +14,7 @@ from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
 from nose.plugins.skip import SkipTest
 from nose.plugins.manager import DefaultPluginManager
-from IPython.core import displaypub, magic
+from IPython.core import display, magic
 
 
 class Template(string.Formatter):
@@ -45,31 +45,26 @@ class DummyUnittestStream:
 class NotebookLiveOutput(object):
     def __init__(self):
         self.output_id = 'ipython_nose_%s' % uuid.uuid4().hex
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_html',
+        display.publish_display_data(
          {'text/html':'<div id="%s"></div>' % self.output_id})
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
+        display.publish_display_data(
          {'application/javascript':
           'document.%s = $("#%s");' % (self.output_id, self.output_id)})
 
     def finalize(self):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
+        display.publish_display_data(
          {'application/javascript':
           'delete document.%s;' % self.output_id})
 
 
     def write_chars(self, chars):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
+        display.publish_display_data(
          {'application/javascript':
           'document.%s.append($("<span>%s</span>"));' % (
                 self.output_id, cgi.escape(chars))})
 
     def write_line(self, line):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
+        display.publish_display_data(
          {'application/javascript':
           'document.%s.append($("<div>%s</div>"));' % (
                 self.output_id, cgi.escape(line))})
@@ -304,10 +299,7 @@ class IPythonDisplay(Plugin):
 
     def begin(self):
         # This feels really hacky
-        try: # >= ipython 1.0
-            from IPython.kernel.zmq.displayhook import ZMQShellDisplayHook
-        except ImportError:
-            from IPython.zmq.displayhook import ZMQShellDisplayHook
+        from ipykernel.displayhook import ZMQShellDisplayHook
         if isinstance(sys.displayhook, ZMQShellDisplayHook):
             self.live_output = NotebookLiveOutput()
         else:
