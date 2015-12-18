@@ -14,5 +14,5 @@ setup(
     license='README.rst',
     description='IPython extension to run nosetests against the current kernel.',
     long_description=long_description,
-    install_requires=['ipython>=3.0.0', 'nose'],
+    install_requires=['ipython>=3.0.0', 'ipykernel', 'nose'],
 )
