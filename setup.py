@@ -7,7 +7,7 @@ with open('README.rst') as f:
 
 setup(
     name='ipython_nose',
-    version='0.1.0',
+    version='0.2.0.dev',
     author='Taavi Burns <taavi at taaviburns dot ca>, Greg Ward <greg at gerg dot ca>',
     py_modules=['ipython_nose'],
     url='https://github.com/taavi/ipython_nose',

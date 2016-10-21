@@ -4,7 +4,6 @@ import traceback
 import re
 import shlex
 import string
-import sys
 import types
 import uuid
 
@@ -14,7 +13,8 @@ from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
 from nose.plugins.skip import SkipTest
 from nose.plugins.manager import DefaultPluginManager
-from IPython.core import displaypub, magic
+from IPython.core import magic
+from IPython.display import display
 
 
 class Template(string.Formatter):
@@ -45,35 +45,32 @@ class DummyUnittestStream:
 class NotebookLiveOutput(object):
     def __init__(self):
         self.output_id = 'ipython_nose_%s' % uuid.uuid4().hex
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_html',
-         {'text/html':'<div id="%s"></div>' % self.output_id})
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
-         {'application/javascript':
-          'document.%s = $("#%s");' % (self.output_id, self.output_id)})
+        display({'text/html': ('<div id="{self.output_id}"></div>'
+                               .format(self=self))},
+                raw=True)
+        display({'application/javascript': ('document.{self.output_id} = '
+                                            '$("#{self.output_id}");'
+                                            .format(self=self))},
+                raw=True)
 
     def finalize(self):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
-         {'application/javascript':
-          'delete document.%s;' % self.output_id})
-
+        display({'application/javascript': ('delete document.{self.output_id};'
+                                            .format(self=self))},
+                raw=True)
 
     def write_chars(self, chars):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
-         {'application/javascript':
-          'document.%s.append($("<span>%s</span>"));' % (
-                self.output_id, cgi.escape(chars))})
+        display({'application/javascript': ('document.{self.output_id}.append('
+                                            '$("<span>{chars}</span>"));'
+                                            .format(self=self,
+                                                    chars=cgi.escape(chars)))},
+                raw=True)
 
     def write_line(self, line):
-        displaypub.publish_display_data(
-         u'IPython.core.displaypub.publish_javascript',
-         {'application/javascript':
-          'document.%s.append($("<div>%s</div>"));' % (
-                self.output_id, cgi.escape(line))})
-
+        display({'application/javascript': ('document.{self.output_id}.append('
+                                            '$("<div>{line}</div>"));')
+                                            .format(self=self,
+                                                    line=cgi.escape(line))},
+                raw=True)
 
 
 class ConsoleLiveOutput(object):
@@ -303,15 +300,7 @@ class IPythonDisplay(Plugin):
         self.skipped += 1
 
     def begin(self):
-        # This feels really hacky
-        try: # >= ipython 1.0
-            from IPython.kernel.zmq.displayhook import ZMQShellDisplayHook
-        except ImportError:
-            from IPython.zmq.displayhook import ZMQShellDisplayHook
-        if isinstance(sys.displayhook, ZMQShellDisplayHook):
-            self.live_output = NotebookLiveOutput()
-        else:
-            self.live_output = ConsoleLiveOutput(self)
+        self.live_output = NotebookLiveOutput()
 
     def finalize(self, result):
         self.result = result
