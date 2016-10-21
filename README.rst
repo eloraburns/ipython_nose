@@ -52,6 +52,14 @@ Usage
   ``-v`` is handled specially, but other arguments are passed to nosetests as
   if they were passed at the command-line.
 
+* Only run test-like things in the current cell using the ``%%nose%% cell magic,
+  e.g.::
+
+    %%nose
+
+    def test_just_this():
+        assert True
+
 
 Caveats
 -------
@@ -72,17 +80,6 @@ Caveats
 
   the frame name ``ipython-input-10-a3ae96abafeb`` is a link to cell 10, but
   not specifically to line 2.
-
-
-TODO
-----
-
-* Have a cell magic to only run test-like things in the current cell, e.g.::
-
-    %%nose
-    
-    def test_just_this():
-        assert True
 
 
 Authors

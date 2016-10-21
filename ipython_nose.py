@@ -378,11 +378,37 @@ def makeNoseConfig(env):
     return Config(env=env, files=cfg_files, plugins=manager)
 
 
-def nose(line, test_module=get_ipython_user_ns_as_a_module):
+class ExcludingTestSelector(object):
+    def __init__(self, excluded_objects):
+        self.excluded_objects = list(excluded_objects)
+
+    def wantModule(self, module):
+        return True
+
+    def wantClass(self, cls):
+        return cls not in self.excluded_objects
+
+    def wantFunction(self, function):
+        return function not in self.excluded_objects
+
+
+def nose(line, cell=None, test_module=get_ipython_user_ns_as_a_module):
     if callable(test_module):
         test_module = test_module()
+    if cell is None:
+        # Called as the %nose line magic.
+        # All objects in the notebook namespace should be considered for the
+        # test suite.
+        selector = None
+    else:
+        # Called as the %%nose cell magic.
+        # Classes and functions defined outside the cell should be excluded from
+        # the test run.
+        selector = ExcludingTestSelector(test_module.__dict__.values())
+        # Evaluate the cell and add objects it defined into the test module.
+        exec(cell, test_module.__dict__)
     config = makeNoseConfig(os.environ)
-    loader = nose_loader.TestLoader(config=config)
+    loader = nose_loader.TestLoader(config=config, selector=selector)
     tests = loader.loadTestsFromModule(test_module)
     extra_args = shlex.split(str(line))
     argv = ['ipython-nose', '--with-ipython-html', '--no-skip'] + extra_args
@@ -396,4 +422,4 @@ def nose(line, test_module=get_ipython_user_ns_as_a_module):
 
 
 def load_ipython_extension(ipython):
-    magic.register_line_magic(nose)
+    magic.register_line_cell_magic(nose)
