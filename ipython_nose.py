@@ -13,6 +13,7 @@ from nose.config import Config, all_config_files
 from nose.plugins.base import Plugin
 from nose.plugins.skip import SkipTest
 from nose.plugins.manager import DefaultPluginManager
+from nose.selector import defaultSelector
 from IPython.core import magic
 from IPython.display import display
 
@@ -378,23 +379,34 @@ def makeNoseConfig(env):
     return Config(env=env, files=cfg_files, plugins=manager)
 
 
-class ExcludingTestSelector(object):
-    def __init__(self, excluded_objects):
+class ExcludingTestSelector(defaultSelector):
+    def __init__(self, config, excluded_objects):
+        super(ExcludingTestSelector, self).__init__(config)
         self.excluded_objects = list(excluded_objects)
 
-    def wantModule(self, module):
-        return True
-
     def wantClass(self, cls):
-        return cls not in self.excluded_objects
+        if cls in self.excluded_objects:
+            return False
+        else:
+            return super(ExcludingTestSelector, self).wantClass(cls)
 
     def wantFunction(self, function):
-        return function not in self.excluded_objects
+        if function in self.excluded_objects:
+            return False
+        else:
+            return super(ExcludingTestSelector, self).wantFunction(function)
+
+    def wantMethod(self, method):
+        if type(method.__self__) in self.excluded_objects:
+            return False
+        else:
+            return super(ExcludingTestSelector, self).wantMethod(method)
 
 
 def nose(line, cell=None, test_module=get_ipython_user_ns_as_a_module):
     if callable(test_module):
         test_module = test_module()
+    config = makeNoseConfig(os.environ)
     if cell is None:
         # Called as the %nose line magic.
         # All objects in the notebook namespace should be considered for the
@@ -404,10 +416,9 @@ def nose(line, cell=None, test_module=get_ipython_user_ns_as_a_module):
         # Called as the %%nose cell magic.
         # Classes and functions defined outside the cell should be excluded from
         # the test run.
-        selector = ExcludingTestSelector(test_module.__dict__.values())
+        selector = ExcludingTestSelector(config, test_module.__dict__.values())
         # Evaluate the cell and add objects it defined into the test module.
         exec(cell, test_module.__dict__)
-    config = makeNoseConfig(os.environ)
     loader = nose_loader.TestLoader(config=config, selector=selector)
     tests = loader.loadTestsFromModule(test_module)
     extra_args = shlex.split(str(line))
