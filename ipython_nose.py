@@ -269,9 +269,13 @@ class IPythonDisplay(Plugin):
             ))
         return ''.join(output)
 
+    def _write_test_line(self, test, status):
+        self.live_output.write_line(
+            "{} ... {}".format(test.shortDescription() or str(test), status))
+
     def addSuccess(self, test):
         if self.verbose:
-            self.live_output.write_line(str(test) + " ... pass")
+            self._write_test_line(test, 'pass')
         else:
             self.live_output.write_chars('.')
 
@@ -279,14 +283,14 @@ class IPythonDisplay(Plugin):
         if issubclass(err[0], SkipTest):
             return self.addSkip(test)
         if self.verbose:
-            self.live_output.write_line(str(test) + " ... error")
+            self._write_test_line(test, 'error')
         else:
             self.live_output.write_chars('E')
         self.failures.append((test, err))
 
     def addFailure(self, test, err):
         if self.verbose:
-            self.live_output.write_line(str(test) + " ... fail")
+            self._write_test_line(test, 'fail')
         else:
             self.live_output.write_chars('F')
         self.failures.append((test, err))
