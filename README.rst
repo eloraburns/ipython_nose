@@ -52,7 +52,7 @@ Usage
   ``-v`` is handled specially, but other arguments are passed to nosetests as
   if they were passed at the command-line.
 
-* Only run test-like things in the current cell using the ``%%nose%% cell magic,
+* Only run test-like things in the current cell using the ``%%nose`` cell magic,
   e.g.::
 
     %%nose
