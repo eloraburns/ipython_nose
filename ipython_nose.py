@@ -99,9 +99,10 @@ class IPythonDisplay(Plugin):
     enabled = True
     score = 2
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=False, expand_tracebacks=False):
         super(IPythonDisplay, self).__init__()
         self.verbose = verbose
+        self.expand_tracebacks = expand_tracebacks
         self.html = []
         self.num_tests = 0
         self.failures = []
@@ -182,7 +183,6 @@ class IPythonDisplay(Plugin):
             padding: 1em;
             margin-left: 0px;
             margin-top: 0px;
-            display: none;
         }
     </style>
     '''
@@ -252,7 +252,7 @@ class IPythonDisplay(Plugin):
           failed: <span class="nosefailedfunc">{name!e}</span>
             [<a class="nosefailtoggle" href="#">toggle traceback</a>]
         </div>
-        <pre class="nosetraceback">{formatted_traceback!e}</pre>
+        <pre class="nosetraceback" style="display:{hide_traceback_style}">{formatted_traceback!e}</pre>
     </div>
     ''')
 
@@ -265,7 +265,9 @@ class IPythonDisplay(Plugin):
             name = test.shortDescription() or str(test)
             formatted_traceback = ''.join(traceback.format_exception(*exc))
             output.append(template.format(
-                name=name, formatted_traceback=formatted_traceback
+                name=name, formatted_traceback=formatted_traceback,
+                hide_traceback_style=('block' if self.expand_tracebacks
+                                      else 'none')
             ))
         return ''.join(output)
 
@@ -426,9 +428,12 @@ def nose(line, cell=None, test_module=get_ipython_user_ns_as_a_module):
     loader = nose_loader.TestLoader(config=config, selector=selector)
     tests = loader.loadTestsFromModule(test_module)
     extra_args = shlex.split(str(line))
+    expand_tracebacks = '--expand-tracebacks' in extra_args
+    if expand_tracebacks:
+        extra_args.remove('--expand-tracebacks')
     argv = ['ipython-nose', '--with-ipython-html', '--no-skip'] + extra_args
     verbose = '-v' in extra_args
-    plug = IPythonDisplay(verbose=verbose)
+    plug = IPythonDisplay(verbose=verbose, expand_tracebacks=expand_tracebacks)
 
     nose_core.TestProgram(
         argv=argv, suite=tests, addplugins=[plug], exit=False, config=config)
