@@ -390,20 +390,29 @@ class ExcludingTestSelector(defaultSelector):
         super(ExcludingTestSelector, self).__init__(config)
         self.excluded_objects = list(excluded_objects)
 
+    def _in_excluded_objects(self, obj):
+        for excluded_object in self.excluded_objects:
+            try:
+                if obj == excluded_object:
+                    return True
+            except Exception:
+                return False
+        return False
+
     def wantClass(self, cls):
-        if cls in self.excluded_objects:
+        if self._in_excluded_objects(cls):
             return False
         else:
             return super(ExcludingTestSelector, self).wantClass(cls)
 
     def wantFunction(self, function):
-        if function in self.excluded_objects:
+        if self._in_excluded_objects(function):
             return False
         else:
             return super(ExcludingTestSelector, self).wantFunction(function)
 
     def wantMethod(self, method):
-        if type(method.__self__) in self.excluded_objects:
+        if self._in_excluded_objects(type(method.__self__)):
             return False
         else:
             return super(ExcludingTestSelector, self).wantMethod(method)
